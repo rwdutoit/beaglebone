@@ -1,0 +1,50 @@
+/dts-v1/;
+
+/ {
+	compatible = "ti,beaglebone", "ti,beaglebone-black", "ti,beaglebone-green";
+	part-number = "BB-UART4";
+	version = "00A0";
+	exclusive-use = "P9.13", "P9.11", "uart4";
+
+	fragment@0 {
+		target = <0xdeadbeef>;
+
+		__overlay__ {
+
+			pinmux_bb_uart4_pins {
+				pinctrl-single,pins = <0x74 0x6 0x70 0x26>;
+				linux,phandle = <0x1>;
+				phandle = <0x1>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <0xdeadbeef>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <0x1>;
+		};
+	};
+
+	__symbols__ {
+		bb_uart4_pins = "/fragment@0/__overlay__/pinmux_bb_uart4_pins";
+	};
+
+	__local_fixups__ {
+
+		fragment@1 {
+
+			__overlay__ {
+				pinctrl-0 = <0x0>;
+			};
+		};
+	};
+
+	__fixups__ {
+		am33xx_pinmux = "/fragment@0:target:0";
+		uart4 = "/fragment@1:target:0";
+	};
+};
