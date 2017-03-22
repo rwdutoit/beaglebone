@@ -17,7 +17,7 @@ const uint16_t UT_REGISTERS_NB = 0x1;
 modbus_t *ctx;
 int twtm_open (const char *device, int slave_address)
 {
-        ctx = modbus_new_rtu (device, 19200, 'N', 8, 1);
+        ctx = modbus_new_rtu (device, 9600, 'N', 8, 1);
         if (ctx == NULL)
         {
 		printf("mb == null");
@@ -28,7 +28,7 @@ int twtm_open (const char *device, int slave_address)
 		printf("set_slave == null");
                 return -1;
         }
-        /*modbus_set_debug (mb, TRUE);*/
+        modbus_set_debug (ctx, 1);
         if (modbus_rtu_set_gpio_rts (ctx, 7) != 0)
         {
  		printf("gpio not setl");
