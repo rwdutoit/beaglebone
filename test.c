@@ -14,32 +14,41 @@ const uint16_t UT_REGISTERS_NB = 0x1;
 //const uint16_t UT_REGISTERS_TAB[] = { 1100 };
 
 
+#define MODBUS_RTU_RTS_NONE   0
+#define MODBUS_RTU_RTS_UP     1
+#define MODBUS_RTU_RTS_DOWN 2
+
+#define MODBUS_RTU_RS232 0
+#define MODBUS_RTU_RS485 1
+
 modbus_t *ctx;
 int twtm_open (const char *device, int slave_address)
 {
-        ctx = modbus_new_rtu (device, 9600, 'N', 8, 1);
-        if (ctx == NULL)
-        {
+	ctx = modbus_new_rtu (device, 9600, 'N', 8, 1);
+	if (ctx == NULL)
+	{
 		printf("mb == null");
-                return -1;
-        }
-        if (modbus_set_slave (ctx, slave_address) != 0)
-        {
+		return -1;
+	}
+	if (modbus_set_slave (ctx, slave_address) != 0)
+	{
 		printf("set_slave == null");
-                return -1;
-        }
-        modbus_set_debug (ctx, 1);
-        if (modbus_rtu_set_gpio_rts (ctx, 7) != 0)
-        {
- 		printf("gpio not setl");
-                return -1;
-        }
-        if (modbus_connect (ctx) != 0)
-        {
-		 printf("could not connect mb");
-                return -1;
-        }
-        return 0;
+		return -1;
+	}
+	modbus_set_debug (ctx, 1);
+modbus_rtu_set_serial_mode(ctx, MODBUS_RTU_RS485);
+modbus_rtu_set_rts(ctx, MODBUS_RTU_RTS_UP);
+        //if (modbus_rtu_set_gpio_rts (ctx, 7) != 0)
+        //{
+ 	//	printf("gpio not setl");
+        //        return -1;
+        //}
+	if (modbus_connect (ctx) != 0)
+	{
+		printf("could not connect mb");
+		return -1;
+	}
+	return 0;
 }
 
 int main(int argc, char *argv[])
