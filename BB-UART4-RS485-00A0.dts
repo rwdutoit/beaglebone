@@ -1,0 +1,18 @@
+uart4_pins: uart4_pins {
+        pinctrl-single,pins = <
+            0x4c (PIN_OUTPUT | MUX_MODE7)        /* gpmc_a3.gpio1[19] */
+            0x70 (PIN_INPUT | MUX_MODE6)        /* gpmc_wait0.uart4_rxd */
+            0x74 (PIN_OUTPUT | MUX_MODE6)        /* gpmc_wpn.uart4_txd */
+        >;
+    };
+
+
+&uart4 {
+    pinctrl-names = "default";/* cat /sys/kernel/debug/pinctrl/pinctrl-handles*/
+    pinctrl-0 = <&uart4_pins>;
+    status = "okay";
+    rts-gpio = <&gpio1 19 GPIO_ACTIVE_HIGH>;
+    rs485-rts-active-high;
+    rs485-rts-delay = <0 0>;
+    linux,rs485-enabled-at-boot-time;
+};
