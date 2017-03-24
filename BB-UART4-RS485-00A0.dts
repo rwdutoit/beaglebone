@@ -1,18 +1,34 @@
-uart4_pins: uart4_pins {
-        pinctrl-single,pins = <
-            0x4c (PIN_OUTPUT | MUX_MODE7)        /* gpmc_a3.gpio1[19] */
-            0x70 (PIN_INPUT | MUX_MODE6)        /* gpmc_wait0.uart4_rxd */
-            0x74 (PIN_OUTPUT | MUX_MODE6)        /* gpmc_wpn.uart4_txd */
-        >;
-    };
+/dts-v1/;
+/plugin/;
 
+/ {
+	compatible = "ti,beaglebone", "ti,beaglebone-black", "ti,beaglebone-green";
+	part-number = "BB-UART4-RS485";
+	version = "00A0";
+	exclusive-use = "P9.13", "P9.11", "P9.42", "gpio0_7", "uart4";
 
-&uart4 {
-    pinctrl-names = "default";/* cat /sys/kernel/debug/pinctrl/pinctrl-handles*/
-    pinctrl-0 = <&uart4_pins>;
-    status = "okay";
-    rts-gpio = <&gpio1 19 GPIO_ACTIVE_HIGH>;
-    rs485-rts-active-high;
-    rs485-rts-delay = <0 0>;
-    linux,rs485-enabled-at-boot-time;
+	fragment@0 {
+		target = <&am33xx_pinmux>;
+
+		__overlay__ {
+			bb_uart4_rs485_pins: pinmux_bb_uart4_rs485_pins {
+				pinctrl-single,pins = <0x74 0x6 0x70 0x26 0x164 0x7>;
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&uart4>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&bb_uart4_rs485_pins>;
+			rs485-rts-delay = <0 0>;
+			rts-gpio = <&gpio0 7 1>;
+			rs485-rts-active-high;
+			linux,rs485-enabled-at-boot-time;
+		};
+	};
+
 };
