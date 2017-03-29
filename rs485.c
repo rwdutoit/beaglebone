@@ -7,6 +7,11 @@
 #include <asm/ioctls.h>
 #include <errno.h>
 #include <termios.h>
+
+
+#define TIOCSERSETRS485	0x5461  /* enable rs-485 (deprecated) */
+#define TIOCSERWRRS485	0x5462  /* write rs-485 */
+#define TIOCSRS485	0x5463 /* enable rs-485 */
  
 //Control struct for setting the port in 485 mode
 struct rs485_ctrl {
@@ -29,7 +34,7 @@ int main(void)
 	struct rs485_wrt io485;
 	int status;
 	int fd;
-	char dev[] = "/dev/ttyS3";
+	char dev[] = "/dev/ttyO4";
 	unsigned char buf[100];
 	int size;	
 	struct termios ti;

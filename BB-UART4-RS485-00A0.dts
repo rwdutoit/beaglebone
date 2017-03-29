@@ -25,8 +25,8 @@
 			pinctrl-names = "default";
 			pinctrl-0 = <&bb_uart4_rs485_pins>;
 			rs485-rts-delay = <0 0>;
-			rts-gpio = <&gpio0 7 1>;
-			rs485-rts-active-high;
+			rts-gpio = <&gpio0 7 0>;
+			rs485-rts-active-low;
 			linux,rs485-enabled-at-boot-time;
 		};
 	};

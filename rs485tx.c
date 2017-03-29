@@ -11,6 +11,11 @@
 #include <errno.h>
 #include <termios.h>  
 
+#define TIOCSERSETRS485
+/* RS485 ioctls: */
+#define TIOCGRS485      0x542E
+#define TIOCSRS485 0x542F
+
 // Control struct for setting the port in 485 mode
 struct rs485_ctrl {
   unsigned short rts_on_send;
