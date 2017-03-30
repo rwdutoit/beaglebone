@@ -13,9 +13,13 @@ sudo cp *.cgi /usr/lib/cgi-bin/
 dtc -O dtb -o ADAFRUIT-SPI0-00A0.dtbo -b 0 -@ ADAFRUIT-SPI0-00A0.dts
 
 
+
 https://github.com/stephane/libmodbus.git
+
 modify:
+
 modbus-rtu.c
+
 
 static ssize_t _modbus_rtu_send(modbus_t *ctx, const uint8_t *req, int req_length)
 {
@@ -49,3 +53,11 @@ FD_SET(ctx->s, &rset);
 +    uint8_t c;
 +    /* Make input buffer empty */
 + while (read(ctx->s, &c, 1));
+
+
+
+    # WiFi Example
+    auto wlan0
+    iface wlan0 inet dhcp
+        wpa-ssid "adafruit"
+        wpa-psk  "mypassword"
