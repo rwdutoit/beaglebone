@@ -1,3 +1,4 @@
 #!/bin/bash
 echo "Building the hello.cgi C++ CGI Program"
 g++ demo.cpp -o demo.cgi
+g++ value.cpp -o value.cgi

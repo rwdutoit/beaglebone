@@ -5,25 +5,38 @@
 #include <sys/sysinfo.h>    // for the system uptime call
 using namespace std;
 
-int counter=0;
-int main(){
-   struct sysinfo info;                           // A structure that contains system stats
-   sysinfo(&info);                                // retrieve the data
-   counter++;
-   char *value = getenv("REMOTE_ADDR");           // The remote address CGI environment variable
-   cout << "Content-type:text/html\r\n ";      // Generate the HTML output
-   cout << "Refresh:1\r\n\r\n";      // Refresh
-   cout << "<html><head>\n";
-cout << "<META HTTP-EQUIV='refresh' CONTENT='1'>";
-   cout << "<title>EBB C++ Uptime</title>\n";
-   cout << "</head><body>\n";
-   cout << "<h1>BeagleBone System Uptime</h1>\n";
-   int mins = info.uptime / 60;                   // the uptime comes from the sysinfo struct
-   int ram = info.freeram / 1024 / 1024;          // the available memory in Mb
-   cout << "<div> The BBB system uptime is " << mins << " minutes.\n";
-   cout << "There is " << ram << " Mb of memory available.</div>\n";
-   cout << "counter: " << counter << " ";
-   cout << "<div> The CGI REMOTE_ADDR environment variable is " << value << "</div>";
-   cout << "</body></html>\n";
+int main()
+{
+
+cout << "Content-type:text/html\r\n\r\n ";      // Generate the HTML output
+cout << "<html>\n";
+cout << "<body>\n";
+
+cout << "<script type=\"text/javascript\" src=\"http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js\"></script>";
+cout << "<script type=\"text/javascript\">";
+cout << "    setInterval(refreshIframe, 1000);";
+cout << "    function refreshIframe() {";
+cout << "        $(\"#Iframe1\")[0].src = $(\"#Iframe1\")[0].src;";
+cout << "    }";
+cout << "</script>";
+cout << "<h1>Counter jQuery</h1>\n";
+cout << "    <iframe id=\"Iframe1\" name=\"Iframe1\" src=\"/cgi-bin/value.cgi\" frameborder=\"0\"></iframe>";
+
+
+cout << "<h1>Counter javascript</h1>\n";
+cout << "   <script type=\"text/javascript\">";
+cout << "       setInterval(refreshIframe2, 1000);";
+cout << "       function refreshIframe2() {";
+cout << "           var frame = document.getElementById(\"Frame2\");";
+cout << "           frame.src = frame.src;";
+cout << "       }";
+
+cout << "   </script>";
+cout << "   <iframe id=\"Frame2\" src=\"/cgi-bin/value.cgi\" frameborder=\"0\"></iframe>";
+
+
+cout << "</body>";
+cout << "</html>\n";
+
    return 0;
 }
