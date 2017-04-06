@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <mosquitto.h>
 
-#define mqtt_host "172.18.100.61"
-#define mqtt_port 1883
+#define mqtt_host "srv-uc01.kva.co.za"
+#define mqtt_port 30001
 
 static int run = 1;
 const char *topic = NULL;
