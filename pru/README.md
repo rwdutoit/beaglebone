@@ -15,3 +15,9 @@ $ ln -s /usr/bin/lnkpru /usr/share/ti/cgt-pru/bin/lnkpru
 export PRU_CGT=/usr/share/ti/cgt-pru
 If you want this to be done automatically when you start a terminal on bbb, just add the above line to ‘~/.bash.rc’. Once all this is done, you can test your setup: 
 
+
+
+
+Kernel module message:
+
+tail -f /var/log/kern.log
