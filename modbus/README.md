@@ -20,15 +20,16 @@ modify:
 
 modbus-rtu.c
 
-
+```c/c++
 static ssize_t _modbus_rtu_send(modbus_t *ctx, const uint8_t *req, int req_length)
 {
 +    uint8_t c;
 +    /* Make input buffer empty */
 + while (read(ctx->s, &c, 1));
+```
 
 modbus.c
-
+```c/c++
 int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
 {
     int rc;
@@ -54,6 +55,7 @@ FD_SET(ctx->s, &rset);
 +    /* Make input buffer empty */
 + while (read(ctx->s, &c, 1));
 
+```
 
 
     # WiFi Example
