@@ -1,4 +1,6 @@
 #!/bin/bash
-echo "Building the hello.cgi C++ CGI Program"
+echo "Building the demo.cpp value.cpp distance.c hello.cpp C++ CGI Program"
 g++ demo.cpp -o demo.cgi
+g++ hello.cpp -o hello.cgi
 g++ value.cpp -o value.cgi
+gcc distance.c -o distance.cgi

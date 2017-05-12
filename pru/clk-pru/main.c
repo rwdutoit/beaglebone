@@ -40,9 +40,8 @@ volatile register uint32_t __R31;
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
 
-#define DATA_BIT               1
 #define CLK_BIT                0
-#define PRU_OCP_RATE_10MS         (200 * 1000 * 10)
+#define PRU_OCP_RATE_100US     (200 * 10)
 
 uint8_t payload[RPMSG_BUF_SIZE];
 
@@ -52,10 +51,11 @@ uint8_t payload[RPMSG_BUF_SIZE];
 void main(void)
 {
 	struct pru_rpmsg_transport transport;
-	uint16_t src, dst, len,counter,count_sample;
+	uint16_t src, dst, len;
+	volatile uint16_t counter,count_samples;
 	volatile uint8_t *status;
 
-volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,amount;
+volatile uint8_t dsc_clk, timeout,clk_high,i;
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -79,78 +79,28 @@ volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,amount;
 			CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 			/* Receive all available messages, multiple messages can be sent per kick */
 			while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) == PRU_RPMSG_SUCCESS) {
-//read
-if(len==2)
-{
-	amount = payload[0] - 48; //convert char to int
-}
-else if(len >2)
-{
-        amount = payload[1] - 48; //convert char to int
-        amount += (payload[0]-48)*10; //convert char to int
-}
-
-//write
-counter = 0;
-payload[counter++] = (uint8_t)'B'; //'T'
-timeout = 0;
-clk_high = 0;
-count_sample = 0;
-//1st phase
-        /* Enable counter */
-        PRU1_CTRL.CYCLE = 0;
-        PRU1_CTRL.CTRL_bit.CTR_EN = 1;
-        /* wait for DSC+CLOCK to stay low for 10ms */
-        do {
-                dsc_clk = ((__R31 & (1u << CLK_BIT)) > 0);
-		if(dsc_clk == 1)
-		{
-			PRU1_CTRL.CTRL_bit.CTR_EN = 0;
-			PRU1_CTRL.CYCLE=0;
-			PRU1_CTRL.CTRL_bit.CTR_EN = 1;
-		}
-		timeout = PRU1_CTRL.CYCLE > PRU_OCP_RATE_10MS;
-        } while (!timeout);
-        PRU1_CTRL.CTRL_bit.CTR_EN = 0;
-
-	payload[counter++] = 84; //'T'
-timeout = 0;
-//next phase
-
-        /* Restart the counter */
-        PRU1_CTRL.CYCLE = 0;
-        PRU1_CTRL.CTRL_bit.CTR_EN = 1;
-        /* read dsc_data on rising edge of clock */
-        do {
-                dsc_clk = ((__R31 & (1u << CLK_BIT)) > 0);
-		//Rising edge
-		if (dsc_clk == 1 && !clk_high)
-		{
-			clk_high=1;
-			dsc_data = ((__R31 & (1u << DATA_BIT)) > 0);
-			if(dsc_data ==1)
-				payload[counter++] = 48; //0
-			else
-				payload[counter++] = 49; //1
-			if(count_sample++ == 3)
+i=0;
+clk_high=0;
+counter=0;
+count_samples=0;
+			do
 			{
-				count_sample = 0;
-                                payload[counter++] = 32; //' '
+			__delay_cycles (PRU_OCP_RATE_100US); //100us
+                        dsc_clk = (__R31 & (1u << CLK_BIT)>0);
+                        if(dsc_clk == 0)
+                                payload[counter++] = 48; //0
+                        else
+                                payload[counter++] = 49; //1
+			if(count_samples++ == 4)
+			{
+				payload[counter++] = (uint8_t)' ';
+				count_samples=0;
 			}
-		}
-		//Falling edge
-		if (dsc_clk == 0 && clk_high)
-                {
-			clk_high=0;
-			dsc_data = (__R31 & (1u << DATA_BIT));
-                }
-                timeout = PRU1_CTRL.CYCLE > PRU_OCP_RATE_10MS;
-        } while (counter<amount);//(!timeout);
-        PRU1_CTRL.CTRL_bit.CTR_EN = 0;
+			}while(counter < 450);
+        payload[counter++] = (uint8_t)'t';
+        payload[counter++] = 10; //LF
+        payload[counter++] = 13; //CR
 
-        payload[counter++] = (uint8_t)'e'; //84/'t'
-        //payload[counter++] = 10; //LF
-        //payload[counter++] = 13; //CR
 				/* Echo the message back to the same address from which we just received */
 				pru_rpmsg_send(&transport, dst, src, payload, counter);
 			}

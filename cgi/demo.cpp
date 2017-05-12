@@ -20,7 +20,7 @@ cout << "        $(\"#Iframe1\")[0].src = $(\"#Iframe1\")[0].src;";
 cout << "    }";
 cout << "</script>";
 cout << "<h1>Counter jQuery</h1>\n";
-cout << "    <iframe id=\"Iframe1\" name=\"Iframe1\" src=\"/cgi-bin/value.cgi\" frameborder=\"0\"></iframe>";
+cout << "    <iframe id=\"Iframe1\" name=\"Iframe1\" src=\"/cgi-bin/distance.cgi\" frameborder=\"0\"></iframe>";
 
 
 cout << "<h1>Counter javascript</h1>\n";
