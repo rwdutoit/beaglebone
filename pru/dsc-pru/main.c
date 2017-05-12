@@ -45,6 +45,7 @@ volatile register uint32_t __R31;
 #define PRU_OCP_RATE_10MS         (200 * 1000 * 10)
 
 uint8_t payload[RPMSG_BUF_SIZE];
+uint8_t payload_falling[RPMSG_BUF_SIZE/2];
 
 /*
  * main.c
@@ -52,8 +53,8 @@ uint8_t payload[RPMSG_BUF_SIZE];
 void main(void)
 {
 	struct pru_rpmsg_transport transport;
-	uint16_t src, dst, len,counter,count_sample;
-	volatile uint8_t *status;
+	uint16_t src, dst, len,counter,counter_n;//,count_sample,count_sample_n;
+	volatile uint8_t *status,i;
 
 volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,amount;
 
@@ -92,10 +93,13 @@ else if(len >2)
 
 //write
 counter = 0;
-payload[counter++] = (uint8_t)'B'; //'T'
+//payload[counter++] = (uint8_t)'B'; //'T'
 timeout = 0;
 clk_high = 0;
-count_sample = 0;
+//count_sample = 0;
+counter_n=0;
+//count_sample_n = 0;
+i = 0;
 //1st phase
         /* Enable counter */
         PRU1_CTRL.CYCLE = 0;
@@ -113,7 +117,7 @@ count_sample = 0;
         } while (!timeout);
         PRU1_CTRL.CTRL_bit.CTR_EN = 0;
 
-	payload[counter++] = 84; //'T'
+	//payload[counter++] = 84; //'T'
 timeout = 0;
 //next phase
 
@@ -127,28 +131,41 @@ timeout = 0;
 		if (dsc_clk == 1 && !clk_high)
 		{
 			clk_high=1;
-			dsc_data = ((__R31 & (1u << DATA_BIT)) > 0);
-			if(dsc_data ==1)
+			dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
+			if(dsc_data == 0)
 				payload[counter++] = 48; //0
 			else
 				payload[counter++] = 49; //1
-			if(count_sample++ == 3)
+			/*if(count_sample++ == 3)
 			{
 				count_sample = 0;
                                 payload[counter++] = 32; //' '
-			}
+			}*/
 		}
 		//Falling edge
 		if (dsc_clk == 0 && clk_high)
                 {
 			clk_high=0;
-			dsc_data = (__R31 & (1u << DATA_BIT));
+			dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
+                        if(dsc_data == 0)
+                                payload_falling[counter_n++] = 48; //0
+                        else
+                                payload_falling[counter_n++] = 49; //1
+                        /*if(count_sample_n++ == 3)
+                        {
+                                count_sample_n = 0;
+                                payload_falling[counter_n++] = 32; //' '
+                        }*/
+
                 }
                 timeout = PRU1_CTRL.CYCLE > PRU_OCP_RATE_10MS;
         } while (counter<amount);//(!timeout);
         PRU1_CTRL.CTRL_bit.CTR_EN = 0;
 
         payload[counter++] = (uint8_t)'e'; //84/'t'
+
+	for(i=0;i<counter_n;i++)
+		payload[counter++] = payload_falling[i];
         //payload[counter++] = 10; //LF
         //payload[counter++] = 13; //CR
 				/* Echo the message back to the same address from which we just received */
