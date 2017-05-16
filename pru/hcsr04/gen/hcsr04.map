@@ -1,7 +1,7 @@
 ******************************************************************************
                      PRU Linker Unix v2.1.4                    
 ******************************************************************************
->> Linked Tue May 16 12:58:09 2017
+>> Linked Tue May 16 13:20:27 2017
 
 OUTPUT FILE NAME:   <gen/hcsr04.out>
 ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 00000000
@@ -12,7 +12,7 @@ MEMORY CONFIGURATION
          name            origin    length      used     unused   attr    fill
 ----------------------  --------  ---------  --------  --------  ----  --------
 PAGE 0:
-  PRU_IMEM              00000000   00002000  000008d0  00001730  RWIX
+  PRU_IMEM              00000000   00002000  00000cdc  00001324  RWIX
 
 PAGE 1:
   PRU_DMEM_0_1          00000000   00002000  00000398  00001c68  RWIX
@@ -60,25 +60,32 @@ section   page    origin      length       input sections
 *          0    00000000    00000014     
                   00000000    00000014     rtspruv3_le.lib : boot_special.obj (.text:_c_int00_noinit_noargs_noexit)
 
-.text      0    00000014    000008bc     
-                  00000014    00000114     rtspruv3_le.lib : divu_c.obj (.text:__pruabi_divu)
-                  00000128    00000100     main.object (.text:main)
-                  00000228    000000d8     rpmsg_lib.lib : pru_rpmsg.object (.text:pru_rpmsg_send)
-                  00000300    000000c4     rtspruv3_le.lib : remu_c.obj (.text:__pruabi_remu)
-                  000003c4    000000c4     rpmsg_lib.lib : pru_rpmsg.object (.text:pru_rpmsg_receive)
-                  00000488    000000a8     main.object (.text:itoa)
-                  00000530    0000008c     rtspruv3_le.lib : divi_c.obj (.text:__pruabi_divi)
-                  000005bc    00000070     main.object (.text:reverse)
-                  0000062c    00000060     rtspruv3_le.lib : remi_c.obj (.text:__pruabi_remi)
-                  0000068c    00000060     rpmsg_lib.lib : pru_rpmsg.object (.text:pru_rpmsg_init)
-                  000006ec    00000060                   : pru_virtqueue.object (.text:pru_virtqueue_get_avail_buf)
-                  0000074c    00000060                   : pru_virtqueue.object (.text:pru_virtqueue_init)
-                  000007ac    0000005c                   : pru_rpmsg.object (.text:pru_rpmsg_channel)
-                  00000808    0000005c                   : pru_virtqueue.object (.text:pru_virtqueue_add_used_buf)
-                  00000864    00000034     rtspruv3_le.lib : memcpy.obj (.text)
-                  00000898    00000028     rpmsg_lib.lib : pru_virtqueue.object (.text:pru_virtqueue_kick)
-                  000008c0    00000008     rtspruv3_le.lib : exit.obj (.text:abort)
-                  000008c8    00000008                     : exit.obj (.text:loader_exit)
+.text      0    00000014    00000cc8     
+                  00000014    000001b0     rtspruv3_le.lib : imath64.obj (.text:__pruabi_divull)
+                  000001c4    00000114                     : divu_c.obj (.text:__pruabi_divu)
+                  000002d8    00000100     main.object (.text:main)
+                  000003d8    000000e4     main.object (.text:hc_sr04_measure_pulse)
+                  000004bc    000000d8     rpmsg_lib.lib : pru_rpmsg.object (.text:pru_rpmsg_send)
+                  00000594    000000c4     rtspruv3_le.lib : remu_c.obj (.text:__pruabi_remu)
+                  00000658    000000c4     rpmsg_lib.lib : pru_rpmsg.object (.text:pru_rpmsg_receive)
+                  0000071c    000000a8     main.object (.text:itoa)
+                  000007c4    0000008c     rtspruv3_le.lib : divi_c.obj (.text:__pruabi_divi)
+                  00000850    00000070     main.object (.text:reverse)
+                  000008c0    0000006c     rtspruv3_le.lib : imath64.obj (.text:_subcull)
+                  0000092c    00000060                     : imath64.obj (.text:__pruabi_lslll)
+                  0000098c    00000060                     : remi_c.obj (.text:__pruabi_remi)
+                  000009ec    00000060     rpmsg_lib.lib : pru_rpmsg.object (.text:pru_rpmsg_init)
+                  00000a4c    00000060                   : pru_virtqueue.object (.text:pru_virtqueue_get_avail_buf)
+                  00000aac    00000060                   : pru_virtqueue.object (.text:pru_virtqueue_init)
+                  00000b0c    0000005c                   : pru_rpmsg.object (.text:pru_rpmsg_channel)
+                  00000b68    0000005c                   : pru_virtqueue.object (.text:pru_virtqueue_add_used_buf)
+                  00000bc4    00000048     main.object (.text:measure_distance_mm)
+                  00000c0c    00000044     rtspruv3_le.lib : imath64.obj (.text:__pruabi_lsrll)
+                  00000c50    00000034                     : memcpy.obj (.text)
+                  00000c84    00000028     rpmsg_lib.lib : pru_virtqueue.object (.text:pru_virtqueue_kick)
+                  00000cac    00000020     rtspruv3_le.lib : imath64.obj (.text:__lmbdull)
+                  00000ccc    00000008                     : exit.obj (.text:abort)
+                  00000cd4    00000008                     : exit.obj (.text:loader_exit)
 
 .bss       1    00000000    00000200     UNINITIALIZED
                   00000000    00000200     (.common:payload)
@@ -140,7 +147,7 @@ GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name
 
 page  address   name                         
 ----  -------   ----                         
-0     000008c8  C$$EXIT                      
+0     00000cd4  C$$EXIT                      
 2     00026000  CT_CFG                       
 2     00020000  CT_INTC                      
 abs   481cc000  __PRU_CREG_BASE_DCAN0        
@@ -211,29 +218,33 @@ abs   0000000c  __PRU_CREG_UART2
 abs   00000100  __TI_STACK_SIZE              
 abs   ffffffff  __binit__                    
 abs   ffffffff  __c_args__                   
-0     00000530  __pruabi_divi                
-0     00000014  __pruabi_divu                
-0     0000062c  __pruabi_remi                
-0     00000300  __pruabi_remu                
+0     000007c4  __pruabi_divi                
+0     000001c4  __pruabi_divu                
+0     00000014  __pruabi_divull              
+0     0000092c  __pruabi_lslll               
+0     00000c0c  __pruabi_lsrll               
+0     0000098c  __pruabi_remi                
+0     00000594  __pruabi_remu                
 0     00000000  _c_int00_noinit_noargs_noexit
 1     00000200  _stack                       
-0     000008c0  abort                        
+0     00000ccc  abort                        
 abs   ffffffff  binit                        
-0     00000488  itoa                         
-0     00000128  main                         
-0     00000864  memcpy                       
+0     000003d8  hc_sr04_measure_pulse        
+0     0000071c  itoa                         
+0     000002d8  main                         
+0     00000c50  memcpy                       
 1     00000000  payload                      
 1     00000394  pru_intc_map                 
-0     000007ac  pru_rpmsg_channel            
-0     0000068c  pru_rpmsg_init               
-0     000003c4  pru_rpmsg_receive            
-0     00000228  pru_rpmsg_send               
-0     00000808  pru_virtqueue_add_used_buf   
-0     000006ec  pru_virtqueue_get_avail_buf  
-0     0000074c  pru_virtqueue_init           
-0     00000898  pru_virtqueue_kick           
+0     00000b0c  pru_rpmsg_channel            
+0     000009ec  pru_rpmsg_init               
+0     00000658  pru_rpmsg_receive            
+0     000004bc  pru_rpmsg_send               
+0     00000b68  pru_virtqueue_add_used_buf   
+0     00000a4c  pru_virtqueue_get_avail_buf  
+0     00000aac  pru_virtqueue_init           
+0     00000c84  pru_virtqueue_kick           
 1     00000300  resourceTable                
-0     000005bc  reverse                      
+0     00000850  reverse                      
 
 
 GLOBAL SYMBOLS: SORTED BY Symbol Address 
@@ -241,24 +252,28 @@ GLOBAL SYMBOLS: SORTED BY Symbol Address
 page  address   name                         
 ----  -------   ----                         
 0     00000000  _c_int00_noinit_noargs_noexit
-0     00000014  __pruabi_divu                
-0     00000128  main                         
-0     00000228  pru_rpmsg_send               
-0     00000300  __pruabi_remu                
-0     000003c4  pru_rpmsg_receive            
-0     00000488  itoa                         
-0     00000530  __pruabi_divi                
-0     000005bc  reverse                      
-0     0000062c  __pruabi_remi                
-0     0000068c  pru_rpmsg_init               
-0     000006ec  pru_virtqueue_get_avail_buf  
-0     0000074c  pru_virtqueue_init           
-0     000007ac  pru_rpmsg_channel            
-0     00000808  pru_virtqueue_add_used_buf   
-0     00000864  memcpy                       
-0     00000898  pru_virtqueue_kick           
-0     000008c0  abort                        
-0     000008c8  C$$EXIT                      
+0     00000014  __pruabi_divull              
+0     000001c4  __pruabi_divu                
+0     000002d8  main                         
+0     000003d8  hc_sr04_measure_pulse        
+0     000004bc  pru_rpmsg_send               
+0     00000594  __pruabi_remu                
+0     00000658  pru_rpmsg_receive            
+0     0000071c  itoa                         
+0     000007c4  __pruabi_divi                
+0     00000850  reverse                      
+0     0000092c  __pruabi_lslll               
+0     0000098c  __pruabi_remi                
+0     000009ec  pru_rpmsg_init               
+0     00000a4c  pru_virtqueue_get_avail_buf  
+0     00000aac  pru_virtqueue_init           
+0     00000b0c  pru_rpmsg_channel            
+0     00000b68  pru_virtqueue_add_used_buf   
+0     00000c0c  __pruabi_lsrll               
+0     00000c50  memcpy                       
+0     00000c84  pru_virtqueue_kick           
+0     00000ccc  abort                        
+0     00000cd4  C$$EXIT                      
 1     00000000  payload                      
 1     00000200  _stack                       
 1     00000300  __TI_STACK_END               
@@ -335,4 +350,4 @@ abs   ffffffff  __binit__
 abs   ffffffff  __c_args__                   
 abs   ffffffff  binit                        
 
-[94 symbols]
+[98 symbols]

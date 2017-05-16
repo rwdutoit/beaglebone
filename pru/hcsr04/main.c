@@ -63,7 +63,7 @@ int hc_sr04_measure_pulse(void)
 
 	/* wait for ECHO to get high */
 	do {
-		echo =  (!((__R31 & (1 << 15) ) >0 ));
+		echo =  (((__R31 & (1 << 15) ) >0 ));
 		timeout = PRU0_CTRL.CYCLE > PRU_OCP_RATE_HZ;
 	} while (!echo && !timeout);
 
@@ -78,7 +78,7 @@ int hc_sr04_measure_pulse(void)
 
 	/* measure the "high" pulse length */
 	do {
-		echo =  (!((__R31 & (1 << 15))>0));
+		echo =  (((__R31 & (1 << 15))>0));
 		timeout = PRU0_CTRL.CYCLE > PRU_OCP_RATE_HZ;
 	} while (echo && !timeout);
 
