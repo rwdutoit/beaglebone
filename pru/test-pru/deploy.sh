@@ -1,3 +1,6 @@
+echo "set P8.44 and P8.43 to output"
+config-pin P8.44 pruout
+config-pin P8.43 pruout
 echo "set P8.45 and P8.46 to input"
 config-pin P8.45 pruin
 config-pin P8.46 pruin

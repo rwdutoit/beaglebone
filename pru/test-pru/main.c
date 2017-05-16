@@ -39,12 +39,14 @@ volatile register uint32_t __R31;
  */
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
+#define OUT44_BIT               3
+#define OUT43_BIT               2
 
 #define DATA_BIT               0
 #define CLK_BIT                1
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
 
-uint8_t payload[RPMSG_BUF_SIZE];
+char payload[RPMSG_BUF_SIZE];
 
 /*
  * main.c
@@ -83,49 +85,66 @@ counter=0;
 			CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 			/* Receive all available messages, multiple messages can be sent per kick */
 			while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) == PRU_RPMSG_SUCCESS) {
+uint8_t out =0;
+if(payload[0]=='1')
+{
+out = 1;
+	__R30 = (__R30 | (1<<OUT44_BIT) );
+	__R30 = (__R30 | (1<<OUT43_BIT) );
+}
+else
+{
+out = 0;
+        __R30 = (__R30 & ~(1<<OUT44_BIT) );
+        __R30 = (__R30 & ~(1<<OUT43_BIT) );
+}
 
-        payload[counter++] = 82; //'R'
-        payload[counter++] = 51; //'3'
-        payload[counter++] = 49; //'1'
-        payload[counter++] = 61; //'='
-payload[counter++] = 48; //'0'
-payload[counter++] = 98; //'b'
+        payload[counter++] = 'R';
+        payload[counter++] = '3';
+        payload[counter++] = '1';
+        payload[counter++] = '=';
+payload[counter++] = '0';
+payload[counter++] = 'b';
 			for(i=0;i<32;i++)
 			{
                         dsc_data = (__R31 & (1u << i));
                         if(!(dsc_data > 0))//inverse for inputs
 			//if ((__R31 & dsc_data) > 0)
-                                payload[counter++] = 48; //0
+                                payload[counter++] = '0';//48; //0
                         else
-                                payload[counter++] = 49; //1
+                                payload[counter++] = '1';//49; //1
 			if(i==3 || i==7 || i==11 || i==15)
-				payload[counter++] = 32; //' '
+				payload[counter++] = ' ';//32; //' '
 			}
-        payload[counter++] = 10; //LF
-        payload[counter++] = 13; //CR
+        payload[counter++] = '\n';//10; //LF
+        payload[counter++] = '\r';//13; //CR
 
-        payload[counter++] = 52; //'4'
-        payload[counter++] = 53; //'5'
-        payload[counter++] = 61; //'='
+        payload[counter++] = '4';
+        payload[counter++] = '5';
+        payload[counter++] = '=';
 			dsc_data = (__R31 & (1u << DATA_BIT));
 			if(!(dsc_data > 0))//inverse for inputs
                         //if ((__R31 & dsc_data) > 0)
-                                payload[counter++] = 48; //0
+                                payload[counter++] = '0';//48; //0
                         else
-                                payload[counter++] = 49; //1
-	payload[counter++] = 32; //' '
-        payload[counter++] = 52; //'4'
-        payload[counter++] = 54; //'6'
-        payload[counter++] = 61; //'='
+                                payload[counter++] = '1';//49; //1
+	payload[counter++] = ' ';
+        payload[counter++] = '4';
+        payload[counter++] = '6';
+        payload[counter++] = '=';
                         dsc_clk = (__R31 & (1u << CLK_BIT));
                         if(!(dsc_clk > 0)) //inverse for inputs
                         //if ((__R31 & dsc_data) > 0)
-                                payload[counter++] = 48; //0
+                                payload[counter++] = '0';//48; //0
                         else
-                                payload[counter++] = 49; //1
-        payload[counter++] = 10; //LF
-        payload[counter++] = 13; //CR
-
+                                payload[counter++] = '1';//49; //1
+        payload[counter++] = '\n';//10; //LF
+        payload[counter++] = '\r';//13; //CR
+        payload[counter++] = 'o';
+        payload[counter++] = 'u';
+        payload[counter++] = 't';
+        payload[counter++] = '=';
+        payload[counter++] = 48 + out;
 				/* Echo the message back to the same address from which we just received */
 				pru_rpmsg_send(&transport, dst, src, payload, counter);
 			}
