@@ -40,8 +40,8 @@ volatile register uint32_t __R31;
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
 
-#define DATA_BIT               1
-#define CLK_BIT                0
+#define DATA_BIT               3//1
+#define CLK_BIT                2//0
 #define PRU_OCP_RATE_10MS         (200 * 1000 * 10)
 
 uint8_t payload[RPMSG_BUF_SIZE];
@@ -162,12 +162,15 @@ timeout = 0;
         } while (counter<amount);//(!timeout);
         PRU1_CTRL.CTRL_bit.CTR_EN = 0;
 
+
+/*
         payload[counter++] = (uint8_t)'e'; //84/'t'
 
 	for(i=0;i<counter_n;i++)
 		payload[counter++] = payload_falling[i];
         //payload[counter++] = 10; //LF
         //payload[counter++] = 13; //CR
+*/
 				/* Echo the message back to the same address from which we just received */
 				pru_rpmsg_send(&transport, dst, src, payload, counter);
 			}
