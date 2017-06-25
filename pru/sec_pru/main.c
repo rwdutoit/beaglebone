@@ -40,12 +40,15 @@ volatile register uint32_t __R31;//input
  */
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
-#define PRU_OCP_RATE_HZ 	(200 * 1000 * 1000)
+#define PRU_OCP_RATE_HZ 	(200 * 1000 * 1000 * 10)
 
+#define OUT_BIT                14
 #define TRIG_BIT               15
 #define ECHO_BIT               15
 #define PRU_OCP_RATE_10US      (200 * 10)
 
+
+#define PIR_BIT                16
 #define DATA_BIT               2
 #define CLK_BIT                5
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
@@ -236,6 +239,7 @@ void main(void)
 {
 	struct pru_rpmsg_transport transport;
 	uint16_t src, dst, len;
+	uint8_t temp;
 	volatile uint8_t *status,i,amount;
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
@@ -278,6 +282,21 @@ else if(len >2)
 				/* there is no room in IRAM for iprintf */
 				char number[5];
 				itoa(d_mm, number);//, 10);
+				//additional PIR
+				/*
+				temp = (!((__R31 & (1u << PIR_BIT)) > 0));
+	                        if(temp == 0)
+				{
+        	                        payload[0] = 48; //0
+                	        	__R30 = __R30 | (1 << OUT_BIT);
+				}
+				else
+				{
+                        	        payload[0] = 49; //1
+				        __R30 = __R30 & ~(1 << OUT_BIT);
+
+				}
+				*/
 				for(i=0;i<5;i++)
 					payload[amount+i] = number[i];
 				pru_rpmsg_send(&transport, dst, src,

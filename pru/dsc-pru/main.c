@@ -40,8 +40,8 @@ volatile register uint32_t __R31;
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
 
-#define DATA_BIT               3//1
-#define CLK_BIT                2//0
+#define DATA_BIT               12//1
+#define CLK_BIT                13//0
 #define PRU_OCP_RATE_10MS         (200 * 1000 * 10)
 
 uint8_t payload[RPMSG_BUF_SIZE];

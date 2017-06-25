@@ -1,6 +1,6 @@
-echo "set P8.45 and P8.46 to input"
-config-pin P8.45 pruin
-config-pin P8.46 pruin
+echo "set P8.20 and P8.21 to input"
+config-pin P8.20 pruin
+config-pin P8.21 pruin
 echo "copying clk-pru.out  to  /lib/firmware/am335x-pru1-fw"
 cp ./gen/clk-pru.out /lib/firmware/am335x-pru1-fw
 echo "copying  PRU_Halt.out   to  /lib/firmware/am335x-pru0-fw"
