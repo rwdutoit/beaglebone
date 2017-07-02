@@ -15,6 +15,8 @@ char readBuf0[MAX_BUFFER_SIZE];
 //#define DEVICE_PRU1		"/dev/rpmsg_pru31"
 #define BIT_COUNT		62 + 36
 
+#define ADC_RAW 		"/sys/bus/iio/devices/iio:device0/in_voltage0_raw"
+
 #define PROG_MAX	25
 
 static volatile int keepRunning = 1;
@@ -25,11 +27,11 @@ void intHandler(int dummy) {
 
 int main(void)
 {
-	struct pollfd pollfds[2];
+	struct pollfd pollfds[3];
 	int i,col,distance,prev_d,count;
 	int result = 0;
 	int motion[8];
-	volatile int door_count,door_acc,isOpen,once,temp;
+	volatile int door_count[8],door_acc[8],isOpen[8],once[8],temp[8];
 
 char progress[PROG_MAX];
 int prog_count;
@@ -40,17 +42,19 @@ FILE *gpioInput[2];
 gpioInput[0] = NULL;
 gpioInput[1] = NULL;
 FILE *gpioOutput = NULL;
+FILE *adcInput = NULL;
+
 char buffer[10];
 int gpio_val,gpio_col[2],gpio_once_r,gpio_once_w;
 
 gpio_once_r =0;
 gpio_once_w =0;
 
-door_count = 0;
-door_acc = 0;
-isOpen = 0;
-once = 0;
-temp=0;
+door_count[0] = 0;
+door_acc[0] = 0;
+isOpen[0] = 0;
+once[0] = 0;
+temp[0]=0;
 
 alpha = 0.1;
 avg_d=0;
@@ -89,6 +93,12 @@ signal(SIGINT, intHandler);
 		return -1;
 	}
 
+        if( (adcInput = fopen(ADC_RAW,"rb")) == NULL)
+        {
+                printf("Failed to open ADC_RAW input file \n");
+                return -1;
+        }
+
 	/* The RPMsg channel exists and the character device is opened */
 	printf("Opened %s, sending %d messages\n\n", DEVICE_PRU0, NUM_MESSAGES);
 
@@ -113,13 +123,28 @@ signal(SIGINT, intHandler);
 		fread(buffer,sizeof(char),sizeof(buffer)-1,gpioInput[1]);
 		int gpio_val2 = atoi(buffer);
 
+int min,max,diff,adc_col;
+min=99999;max=0;diff=0;adc_col=0;
+for(i=0;i<100;i++)
+{
+		fseek(adcInput,0,SEEK_SET);
+		fread(buffer,sizeof(char),sizeof(buffer)-1,adcInput);
+		int adc_val = atoi(buffer);
+		if(adc_val<min)min=adc_val;
+		if(adc_val>max)max=adc_val;
+}
+diff=max-min;
+if(avg_d<100)
+	adc_col=42;//green
+else
+	adc_col=41;//red
 		/* Poll until we receive a message from the PRU and then print it */
 		//result = read(pollfds[1].fd, readBuf, MAX_BUFFER_SIZE);
 		result = read(pollfds[0].fd, readBuf0, MAX_BUFFER_SIZE);
 		if (result > 0)
 			/*printf("\r%02d: %s",i,readBuf);*/
 			distance = atoi(&readBuf0[20]);
-			current = (double)distance;
+			current = (double)diff;
 			avg_d = alpha*current + (1-alpha)*avg_d; //exponential moving avg
 			
 			//if(count==1)
@@ -180,14 +205,15 @@ signal(SIGINT, intHandler);
 				"%c[%dm Bedroom PIR: 		%d %c[40m\n\r",
                                 27,27,count,
 				27,gpio_col[1],gpio_val2,27, //readBuf0[0]-48,27,
-				27,motion[1],readBuf0[1]-48,27,
-				27,motion[2],readBuf0[2]-48,27,
-				27,motion[3],readBuf0[3]-48,27,
-				27,motion[4],readBuf0[4]-48,27,
-				27,motion[5],readBuf0[5]-48,27,
-				27,motion[6],readBuf0[6]-48,27,
-				27,motion[7],readBuf0[7]-48,27);
+				27,motion[1],isOpen[1],27, //readBuf0[1]-48,27,
+				27,motion[2],isOpen[2],27, //readBuf0[2]-48,27,
+				27,motion[3],isOpen[3],27, //readBuf0[3]-48,27,
+				27,motion[4],isOpen[4],27, //,readBuf0[4]-48,27,
+				27,motion[5],isOpen[5],27, //,readBuf0[5]-48,27,
+				27,motion[6],isOpen[6],27, //,readBuf0[6]-48,27,
+				27,motion[7],isOpen[7],27); //,readBuf0[7]-48,27);
 			printf("%c[%dm Garage PIR: 		%d %c[40m\n\r",27,gpio_col[0],gpio_val,27);
+			printf("%c[%dm CT ADC_raw: 		%d %c[40m\n\r",27,adc_col,(int)avg_d,27);
 			printf("%c[%dm Distance: 		%d mm %c[40m\n\r",27,col,distance,27);
 
 		prog_count = distance * PROG_MAX / 3300;
@@ -198,32 +224,35 @@ signal(SIGINT, intHandler);
 		printf("%s",progress);
 		prev_d = distance;
 		fflush(stdout);
-		if(door_count++ < 20)
+for(i=0;i<8;i++)
+{
+		if(door_count[i]++ < 20)
                 {
-                        door_acc += (readBuf0[3]- 48);
+                        door_acc[i] += (readBuf0[i]- 48);
                 }
                 else
                 {
-                        if (door_acc ==20)
+                        if (door_acc[i] ==20)
                         {
-				temp = door_acc;
-                                isOpen = 0;
-				once=0;
+				temp[i] = door_acc[i];
+                                isOpen[i] = 0;
+				once[i]=0;
                         }
                         else
                         {
-				temp = door_acc;
-				isOpen = 1;
-                                if(once==0)
+				temp[i] = door_acc[i];
+				isOpen[i] = 1;
+                                if(once[i]==0)
                                 {
-                                        once =1;
+                                        once[i] =1;
                                         popen("xset -display :0.0 dpms force on","r");//interrupt screensaver
                                         printf("\r\nScreen on\r\n");
                                 }
                         }
-                        door_count=0;
-			door_acc=0;
+                        door_count[i]=0;
+			door_acc[i]=0;
                 }
+}
                 /*
                 if(readBuf0[3] == 48)
                 {
