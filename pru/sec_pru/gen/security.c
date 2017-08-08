@@ -33,6 +33,9 @@ int main(void)
 	int motion[8];
 	volatile int door_count[8],door_acc[8],isOpen[8],once[8],temp[8];
 
+for(i=0;i<sizeof(isOpen);i++)
+	isOpen[i] = 0;
+
 char progress[PROG_MAX];
 int prog_count;
 
@@ -92,12 +95,13 @@ signal(SIGINT, intHandler);
 		printf("Failed to open GPIO output file \n");
 		return -1;
 	}
-
+/*	
         if( (adcInput = fopen(ADC_RAW,"rb")) == NULL)
         {
                 printf("Failed to open ADC_RAW input file \n");
                 return -1;
         }
+*/	
 
 	/* The RPMsg channel exists and the character device is opened */
 	printf("Opened %s, sending %d messages\n\n", DEVICE_PRU0, NUM_MESSAGES);
@@ -123,9 +127,11 @@ signal(SIGINT, intHandler);
 		fread(buffer,sizeof(char),sizeof(buffer)-1,gpioInput[1]);
 		int gpio_val2 = atoi(buffer);
 
+int adc_col=42;
+/*
 int min,max,diff,adc_col;
 min=99999;max=0;diff=0;adc_col=0;
-for(i=0;i<100;i++)
+for(i=0;i<25;i++)
 {
 		fseek(adcInput,0,SEEK_SET);
 		fread(buffer,sizeof(char),sizeof(buffer)-1,adcInput);
@@ -138,15 +144,20 @@ if(avg_d<100)
 	adc_col=42;//green
 else
 	adc_col=41;//red
+*/
+
 		/* Poll until we receive a message from the PRU and then print it */
 		//result = read(pollfds[1].fd, readBuf, MAX_BUFFER_SIZE);
 		result = read(pollfds[0].fd, readBuf0, MAX_BUFFER_SIZE);
 		if (result > 0)
 			/*printf("\r%02d: %s",i,readBuf);*/
+
 			distance = atoi(&readBuf0[20]);
+/*
 			current = (double)diff;
 			avg_d = alpha*current + (1-alpha)*avg_d; //exponential moving avg
-			
+*/			
+
 			//if(count==1)
 			//	prev_d = distance;
 			//if((distance-prev_d) > 100)
@@ -196,6 +207,7 @@ else
 				gpio_col[1] = 41;//red
 			printf("%c[H%c[J Reading:%d \n\r Movement:\n\r"
 				"%c[%dm Lounge door:		%d %c[40m\n\r"
+				"%c[%dm Upstairs:		%d %c[40m\n\r"
 				"%c[%dm Panic:			%d %c[40m\n\r"
 				"%c[%dm Lounge+ Kitchen door:	%d %c[40m\n\r"
 				"%c[%dm Garage door: 		%d %c[40m\n\r"
@@ -205,6 +217,7 @@ else
 				"%c[%dm Bedroom PIR: 		%d %c[40m\n\r",
                                 27,27,count,
 				27,gpio_col[1],gpio_val2,27, //readBuf0[0]-48,27,
+				27,motion[0],isOpen[0],27, //readBuf0[1]-48,27,
 				27,motion[1],isOpen[1],27, //readBuf0[1]-48,27,
 				27,motion[2],isOpen[2],27, //readBuf0[2]-48,27,
 				27,motion[3],isOpen[3],27, //readBuf0[3]-48,27,
@@ -213,7 +226,7 @@ else
 				27,motion[6],isOpen[6],27, //,readBuf0[6]-48,27,
 				27,motion[7],isOpen[7],27); //,readBuf0[7]-48,27);
 			printf("%c[%dm Garage PIR: 		%d %c[40m\n\r",27,gpio_col[0],gpio_val,27);
-			printf("%c[%dm CT ADC_raw: 		%d %c[40m\n\r",27,adc_col,(int)avg_d,27);
+//			printf("%c[%dm CT ADC_raw: 		%d %c[40m\n\r",27,adc_col,(int)avg_d,27);
 			printf("%c[%dm Distance: 		%d mm %c[40m\n\r",27,col,distance,27);
 
 		prog_count = distance * PROG_MAX / 3300;
@@ -245,8 +258,11 @@ for(i=0;i<8;i++)
                                 if(once[i]==0)
                                 {
                                         once[i] =1;
+					if(i==3)
+					{
                                         popen("xset -display :0.0 dpms force on","r");//interrupt screensaver
                                         printf("\r\nScreen on\r\n");
+					}
                                 }
                         }
                         door_count[i]=0;

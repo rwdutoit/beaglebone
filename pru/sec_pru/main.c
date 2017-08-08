@@ -47,14 +47,140 @@ volatile register uint32_t __R31;//input
 #define ECHO_BIT               15
 #define PRU_OCP_RATE_10US      (200 * 10)
 
-
+//ADC
 #define PIR_BIT                16
 #define DATA_BIT               2
 #define CLK_BIT                5
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
 
-
 char payload[RPMSG_BUF_SIZE];
+
+
+#define PRU0_ARM_INTERRUPT 19
+
+#define ADC_BASE 0x44e0d000
+
+#define CONTROL 0x0040
+#define SPEED   0x004c
+#define STEP1   0x0064
+#define DELAY1  0x0068
+#define STATUS  0x0044
+#define STEPCONFIG  0x0054
+#define FIFO0COUNT  0x00e4
+
+#define ADC_FIFO0DATA   (ADC_BASE + 0x0100)
+
+/*
+#define temp0 r1
+#define temp1 r2
+#define temp2 r3
+#define temp3 r4
+#define temp4 r5
+#define adc_base r6
+#define fifo0data r7
+#define out_buf r8
+#define locals r9
+#define cap_delay r14
+*/
+
+int read_adc(long *cap_delay, long *ticks)
+{
+register unsigned long temp0 =0;
+register unsigned long temp1 =0;
+register unsigned long temp2 =0;
+register unsigned long temp3 =0;
+
+//register unsigned long cap_delay=0;
+//register unsigned long * locals = (volatile unsigned long*) 0;
+
+register unsigned long *adc_base = (volatile unsigned long*) ADC_BASE;
+register unsigned long *fifo0data = (volatile unsigned long*) ADC_FIFO0DATA;
+
+/*
+	locals = 0;
+	temp0 = *locals
+	temp1 = 0xbeef1965;
+	if(temp0 != temp1)
+		return -1;
+*/
+//disable ADC
+	temp0 = *(adc_base + CONTROL);
+	temp1 = 0x1;
+	temp1 = ~temp1;
+	temp0 = temp0 & temp1;
+	*(adc_base + CONTROL) = temp0; //disable
+//ADC speed
+	temp0 = 0;
+	*(adc_base + SPEED) = temp0; //full speed
+
+//cap_delay
+//	cap_delay = *(locals + 0xc4);
+
+//setup step and delay
+temp0=STEP1;
+temp1=0;
+temp2=0;
+for(int i=0;i<8;i++)
+{
+	temp3 = temp1 << 19;
+	*(adc_base + temp0 ) = temp3; //step-config-#
+	temp0 += 4;//goto next register
+	*(adc_base + temp0 ) = temp2; //step-delay-#
+	temp1 += 1;//increment value for SEL_INP
+	temp0 += 4;//goto next register
+}
+
+//Enable ADC
+	temp0 = *(adc_base + CONTROL); //
+	temp0 |= 0x7;
+	*(adc_base + CONTROL) = temp0; //
+
+
+	if(cap_delay != 0)//capture_delay
+	{
+		temp0 = cap_delay;
+		while(temp0 != 0) temp0 -= 1;
+	}
+
+	//no-delay
+	temp0 = 0x1fe;
+	*(adc_base + STEP_CONFIG) = temp0; //enable 8-steps. First bit0 =0
+/*
+	temp0 = *(locals + 0x14); //read runtime flags
+	if( (temp0 & 0x1) != 0)
+		return -1;
+	else
+	{
+		//no-scope
+		temp0 = *(locals+0x04)
+	}
+*/
+
+	*ticks++;//increment ticks
+
+//wait for fifo
+	temp0 = 0;
+	while(temp0 != 8) //wait for 8-words in fifo register
+		temp0 = *(adc_base + FIFO0COUNT);
+
+for(int chan =0;chan < 8;chan++)
+{
+//read all fifo
+	value = *(fifo0data);
+	channel = value >> 16;
+	channel &= 0xf;
+	temp1 = 0xfff;
+	value &= temp1;
+
+//not ENC0 or ENC1
+	//load data
+
+//next channel
+	temp0 = temp0 -1;
+}
+
+	return 0;
+}
 
 int hc_sr04_measure_pulse(void)
 {
