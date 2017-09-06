@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -5,6 +6,7 @@
 #include <sys/poll.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 
 #define MAX_BUFFER_SIZE		512
 char readBuf0[MAX_BUFFER_SIZE];
@@ -21,6 +23,139 @@ char readBuf0[MAX_BUFFER_SIZE];
 
 static volatile int keepRunning = 1;
 
+#define GPIO_START	0x4804c000
+#define GPIO_END	0x4804e000
+#define GPIO_SIZE	(GPIO_END - GPIO_START)
+#define GPIO_SET	0x194
+#define GPIO_CLEAR	0x190
+
+#define ADC_BASE 	0x44e0d000
+#define ADC_END         0x44e0f000
+#define ADC_SIZE 	(ADC_END - ADC_BASE)
+
+#define CONTROL 	0x0040
+#define SPEED   	0x004c
+#define STEPCONFIG1   	0x0064
+#define DELAY1  	0x0068
+#define STATUS  	0x0044
+#define STEPENABLE  	0x0054
+#define FIFO0COUNT  	0x00e4
+
+#define ADC_FIFO0DATA   0x0100
+
+unsigned long *adc_base;// PRU is  = (unsigned long*) ADC_BASE;
+unsigned long *adc_status;
+int fd_mem;
+void read_adc(unsigned long adc_val[8])//long *cap_delay, long *ticks)
+{
+/*
+int i=0;
+unsigned long temp0=0;
+unsigned long temp1=0;
+unsigned long temp2=0;
+unsigned long temp3=0;
+
+unsigned long cap_delay=0;
+unsigned long ticks=0;
+long chan_amount = 8;
+
+unsigned long channel=0;
+//unsigned long * locals = (volatile unsigned long*) 0;
+
+//unsigned long *adc_base;// PRU is  = (unsigned long*) ADC_BASE;
+unsigned long *fifo0data;//PRU is  = (unsigned long*) ADC_FIFO0DATA;
+
+//volatile unsigned long *gpio;
+//volatile unsigned long *set_addr;
+//volatile unsigned long *clear_addr;
+
+
+adc_val[0]=0;
+adc_val[1]=0;
+adc_val[2]=0;
+adc_val[3]=0;
+adc_val[4]=0;
+adc_val[5]=0;
+adc_val[6]=0;
+adc_val[7]=0;
+
+//int fd_mem = open("/dev/mem",O_RDWR);
+//gpio = mmap(0,GPIO_SIZE,PROT_READ | PROT_WRITE, MAP_SHARED, fd, GPIO_START);
+//set_addr = gpio + GPIO_SET;
+//clear_addr = gpio + GPIO_CLEAR;
+
+
+//adc_base = mmap(0,ADC_SIZE,PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, ADC_BASE);
+fifo0data = (unsigned long *)( adc_base + ADC_FIFO0DATA);
+
+//disable ADC
+        temp0 = *(adc_base + CONTROL);
+        temp1 = 0x1;
+        temp1 = ~temp1;
+        temp0 = temp0 & temp1;
+        *(adc_base + CONTROL) = 0;//temp0; //disable
+//ADC speed
+        temp0 = 0;
+        *(adc_base + SPEED) = temp0; //full speed
+
+//cap_delay
+//      cap_delay = *(locals + 0xc4);
+
+//setup step and delay
+temp0=STEPCONFIG1;
+temp1=0;
+temp2=0;
+for(i=0;i<chan_amount;i++) //channels
+{
+        temp3 = temp1 << 19;
+        *(adc_base + temp0 ) = temp3; //step-config-#
+        temp0 += 4;//goto next register
+        *(adc_base + temp0 ) = temp2; //step-delay-#
+        temp1 += 1;//increment value for SEL_INP
+        temp0 += 4;//goto next register
+}
+
+//Enable ADC
+        temp0 = *(adc_base + CONTROL); //
+        temp0 |= 0x7;
+        *(adc_base + CONTROL) = 0x7;//temp0; //
+
+        //no-delay
+        temp0 = 0x1fe;//  0x2; //1 step // 0x1fe; //8-steps
+        *(adc_base + STEPENABLE) = temp0; //enable 8-steps. First bit0 =0
+
+        ticks++;//increment ticks
+
+//wait for fifo
+        temp0 = 0;
+	temp0 = *(adc_base + FIFO0COUNT);
+        //while(temp0 < chan_amount) //wait for 8-words in fifo register
+	//	temp0 = *(adc_base + FIFO0COUNT);
+
+for(i=0;i< chan_amount;i++)//channels
+{
+//read all fifo
+        adc_val[i] = *(fifo0data);
+        channel = adc_val[i] >> 16;
+        channel &= 0xf;
+        temp1 = 0xfff;
+        adc_val[i] &= temp1;
+	//adc_val[i] = *(adc_base + STATUS);
+
+//not ENC0 or ENC1
+        //load data
+
+//next channel
+        //temp0 = temp0 -1;
+}
+
+adc_status = (unsigned long *)(adc_base + CONTROL); // (adc_base);
+//return adc_val;
+*/
+}
+
+
+
 void intHandler(int dummy) {
     keepRunning = 0;
 }
@@ -28,7 +163,8 @@ void intHandler(int dummy) {
 int main(void)
 {
 	struct pollfd pollfds[3];
-	int i,col,distance,prev_d,count;
+	int i,col,distance,prev_d,count,bits_int;//,adc_val;
+	unsigned long adc_val[8];
 	int result = 0;
 	int motion[8];
 	volatile int door_count[8],door_acc[8],isOpen[8],once[8],temp[8];
@@ -65,10 +201,12 @@ avg_d=0;
 i=0;
 count=0;
 col=42;
+bits_int=0;
 signal(SIGINT, intHandler);
 	/* Open the rpmsg_pru character device file */
 	pollfds[0].fd = open(DEVICE_PRU0, O_RDWR);
-	if (pollfds[0].fd < 0) {
+	if (pollfds[0].fd < 0) 
+	{
 		printf("Failed to open %s\n", DEVICE_PRU0);
 		return -1;
 	}
@@ -102,7 +240,18 @@ signal(SIGINT, intHandler);
                 return -1;
         }
 */	
-
+	fd_mem = open("/dev/mem",O_RDWR);
+	if(!fd_mem)
+	{
+		printf("Failed to open MEM-MAP location \n");
+                return -1;
+	}
+	else
+	{
+		adc_base = mmap(0,ADC_SIZE,PROT_READ | PROT_WRITE, MAP_SHARED, fd_mem, ADC_BASE);
+	}
+adc_status = (unsigned long *)(adc_base + 0x40);
+*adc_status = 0;
 	/* The RPMsg channel exists and the character device is opened */
 	printf("Opened %s, sending %d messages\n\n", DEVICE_PRU0, NUM_MESSAGES);
 
@@ -113,7 +262,8 @@ signal(SIGINT, intHandler);
 		usleep(50000);
 		/* Send 'hello world!' to the PRU through the RPMsg channel */
 		//result = write(pollfds[1].fd, "12", 3);
-		result = write(pollfds[0].fd, "20", 3);
+		char send_val = 20;
+		result = write(pollfds[0].fd, &send_val, 3);
 		//if (result > 0)
 		//	printf("Message %d: Sent to PRU\n", i);
 
@@ -129,13 +279,15 @@ signal(SIGINT, intHandler);
 
 int adc_col=42;
 /*
-int min,max,diff,adc_col;
+int min,max,diff;
 min=99999;max=0;diff=0;adc_col=0;
 for(i=0;i<25;i++)
 {
+
 		fseek(adcInput,0,SEEK_SET);
 		fread(buffer,sizeof(char),sizeof(buffer)-1,adcInput);
-		int adc_val = atoi(buffer);
+		adc_val = atoi(buffer);
+
 		if(adc_val<min)min=adc_val;
 		if(adc_val>max)max=adc_val;
 }
@@ -150,10 +302,19 @@ else
 		//result = read(pollfds[1].fd, readBuf, MAX_BUFFER_SIZE);
 		result = read(pollfds[0].fd, readBuf0, MAX_BUFFER_SIZE);
 		if (result > 0)
-			/*printf("\r%02d: %s",i,readBuf);*/
+		{
+			bits_int = (int)readBuf0[0] | ((int)readBuf0[1] << 8) | ((int)readBuf0[2] << 16) | ((int)readBuf0[3] << 24);
 
-			distance = atoi(&readBuf0[20]);
-/*
+			distance = (int)readBuf0[4] | ((int)readBuf0[5] << 8);
+
+			//null_i=20;
+			//while(readBuf0[null_i] != '\0' && null_i < MAX_BUFFER_SIZE)
+			//	null_i++;
+
+			read_adc(adc_val);
+			//adc_val = (int)readBuf0[6] | ((int)readBuf0[7] << 8);
+
+/*			
 			current = (double)diff;
 			avg_d = alpha*current + (1-alpha)*avg_d; //exponential moving avg
 */			
@@ -172,7 +333,7 @@ else
 				col = 44;//blue
 			for(i=0;i<8;i++)
 			{
-				if( (readBuf0[i]-48) > 0)
+				if( ( (bits_int & (1 << i)) >> i) )// (readBuf0[i]-48) > 0)
 					motion[i] = 42;//green
 				else
 					motion[i] = 41;//red
@@ -228,54 +389,60 @@ else
 			printf("%c[%dm Garage PIR: 		%d %c[40m\n\r",27,gpio_col[0],gpio_val,27);
 //			printf("%c[%dm CT ADC_raw: 		%d %c[40m\n\r",27,adc_col,(int)avg_d,27);
 			printf("%c[%dm Distance: 		%d mm %c[40m\n\r",27,col,distance,27);
+			printf("%c[%dm ADC value:%d,%d,%d,%d,%d,%d,%d,%d  %c[40m\n\r",27,adc_col,adc_val[0],adc_val[1],adc_val[2],adc_val[3],
+				adc_val[4],adc_val[5],adc_val[6],adc_val[7],27);
+			//printf("debug: bits:%d, int:%d,%d,%d,%d  \n\r",bits_int,(int)readBuf0[4],readBuf0[5],readBuf0[6],readBuf0[7]);
+			printf("adc_status: 0x%08x  \n\r",*adc_status);
 
-		prog_count = distance * PROG_MAX / 3300;
-		for(i=0;i<prog_count;i++)
-			progress[i]= '#';
-		for(i=prog_count;i<PROG_MAX;i++)
-			progress[i]=' ';
-		printf("%s",progress);
-		prev_d = distance;
-		fflush(stdout);
-for(i=0;i<8;i++)
-{
-		if(door_count[i]++ < 20)
-                {
-                        door_acc[i] += (readBuf0[i]- 48);
-                }
-                else
-                {
-                        if (door_acc[i] ==20)
-                        {
-				temp[i] = door_acc[i];
-                                isOpen[i] = 0;
-				once[i]=0;
-                        }
-                        else
-                        {
-				temp[i] = door_acc[i];
-				isOpen[i] = 1;
-                                if(once[i]==0)
-                                {
-                                        once[i] =1;
-					if(i==3)
-					{
-                                        popen("xset -display :0.0 dpms force on","r");//interrupt screensaver
-                                        printf("\r\nScreen on\r\n");
-					}
-                                }
-                        }
-                        door_count[i]=0;
-			door_acc[i]=0;
-                }
-}
-                /*
-                if(readBuf0[3] == 48)
-                {
-                        popen("xset -display :0.0 dpms force on","r");//interrupt screensaver
-                        printf("Screen on");
-                }
-                */
+			prog_count = distance * PROG_MAX / 3300;
+			for(i=0;i<prog_count;i++)
+				progress[i]= '#';
+			for(i=prog_count;i<PROG_MAX;i++)
+				progress[i]=' ';
+			printf("%s",progress);
+			prev_d = distance;
+			fflush(stdout);
+
+			for(i=0;i<8;i++)
+			{
+				if(door_count[i]++ < 20)
+	                	{
+        	                	door_acc[i] += ( (bits_int & (1<<i)) >> i );// (readBuf0[i]- 48);
+                		}
+                		else
+                		{
+	                        	if (door_acc[i] ==20)
+	                        	{
+						temp[i] = door_acc[i];
+		                                isOpen[i] = 0;
+						once[i]=0;
+		                        }
+		                        else
+		                        {
+						temp[i] = door_acc[i];
+						isOpen[i] = 1;
+	                	                if(once[i]==0)
+		                                {
+		                                        once[i] =1;
+							if(i==3)
+							{
+		                                        	popen("xset -display :0.0 dpms force on","r");//interrupt screensaver
+		                                        	printf("\r\nScreen on\r\n");
+							}
+		                                }
+		                        }
+		                        door_count[i]=0;
+					door_acc[i]=0;
+	                	}
+			}
+        	        /*
+        	        if(readBuf0[3] == 48)
+	                {
+	                        popen("xset -display :0.0 dpms force on","r");//interrupt screensaver
+	                        printf("Screen on");
+	                }
+	                */
+		}
 	}
 
 	/* Received all the messages the example is complete */

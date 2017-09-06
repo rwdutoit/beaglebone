@@ -83,18 +83,22 @@ char payload[RPMSG_BUF_SIZE];
 #define cap_delay r14
 */
 
-int read_adc(long *cap_delay, long *ticks)
+unsigned long read_adc()//long *cap_delay, long *ticks)
 {
+int i=0;
 register unsigned long temp0 =0;
 register unsigned long temp1 =0;
 register unsigned long temp2 =0;
 register unsigned long temp3 =0;
 
-//register unsigned long cap_delay=0;
-//register unsigned long * locals = (volatile unsigned long*) 0;
+unsigned long cap_delay=0;
+unsigned long ticks=0;
+register unsigned long adc_val;
+unsigned long channel=0;
+//unsigned long * locals = (volatile unsigned long*) 0;
 
-register unsigned long *adc_base = (volatile unsigned long*) ADC_BASE;
-register unsigned long *fifo0data = (volatile unsigned long*) ADC_FIFO0DATA;
+register unsigned long *adc_base = (unsigned long*) ADC_BASE;
+register unsigned long *fifo0data = (unsigned long*) ADC_FIFO0DATA;
 
 /*
 	locals = 0;
@@ -120,7 +124,7 @@ register unsigned long *fifo0data = (volatile unsigned long*) ADC_FIFO0DATA;
 temp0=STEP1;
 temp1=0;
 temp2=0;
-for(int i=0;i<8;i++)
+for(i=0;i<8;i++) //channels
 {
 	temp3 = temp1 << 19;
 	*(adc_base + temp0 ) = temp3; //step-config-#
@@ -143,8 +147,8 @@ for(int i=0;i<8;i++)
 	}
 
 	//no-delay
-	temp0 = 0x1fe;
-	*(adc_base + STEP_CONFIG) = temp0; //enable 8-steps. First bit0 =0
+	temp0 = 0x1fe;//  0x2; //1 step // 0x1fe; //8-steps
+	*(adc_base + STEPCONFIG) = temp0; //enable 8-steps. First bit0 =0
 /*
 	temp0 = *(locals + 0x14); //read runtime flags
 	if( (temp0 & 0x1) != 0)
@@ -156,21 +160,21 @@ for(int i=0;i<8;i++)
 	}
 */
 
-	*ticks++;//increment ticks
+	ticks++;//increment ticks
 
 //wait for fifo
 	temp0 = 0;
-	while(temp0 != 8) //wait for 8-words in fifo register
+	while(temp0 < 8) //wait for 8-words in fifo register
 		temp0 = *(adc_base + FIFO0COUNT);
 
-for(int chan =0;chan < 8;chan++)
+for(i=0;i< 8;i++)//channels
 {
 //read all fifo
-	value = *(fifo0data);
-	channel = value >> 16;
+	adc_val = *(fifo0data);
+	channel = adc_val >> 16;
 	channel &= 0xf;
 	temp1 = 0xfff;
-	value &= temp1;
+	adc_val &= temp1;
 
 //not ENC0 or ENC1
 	//load data
@@ -179,7 +183,7 @@ for(int chan =0;chan < 8;chan++)
 	temp0 = temp0 -1;
 }
 
-	return 0;
+	return adc_val;
 }
 
 int hc_sr04_measure_pulse(void)
@@ -270,7 +274,7 @@ static int measure_distance_mm(void)
      reverse(s);
  }
 
-void dsc_read(uint8_t amount,char output_char[])
+void dsc_read(uint8_t amount,unsigned long *output_long)
 {
 volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,counter,counter_n,i;
 //write
@@ -282,6 +286,7 @@ clk_high = 0;
 counter_n=0;
 //count_sample_n = 0;
 i = 0;
+*output_long =0;
 //1st phase
         /* Enable counter */
         PRU0_CTRL.CYCLE = 0;
@@ -316,9 +321,9 @@ timeout = 0;
                         clk_high=1;
                         dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
                         if(dsc_data == 0)
-                                output_char[counter++] = 48; //0
+                                *output_long &= ~(1<<counter++) ;//output_char[counter++] = 48; //0
                         else
-                                output_char[counter++] = 49; //1
+                                *output_long |= (1<<counter++); //output_char[counter++] = 49; //1
                         /*if(count_sample++ == 3)
                         {
                                 count_sample = 0;
@@ -347,7 +352,7 @@ timeout = 0;
         } while (counter<amount);//(!timeout);
         PRU0_CTRL.CTRL_bit.CTR_EN = 0;
 
-
+	//output_char[--counter] = (char)'\0';
 /*
         output_char[counter++] = (uint8_t)'e'; //84/'t'
 
@@ -367,6 +372,8 @@ void main(void)
 	uint16_t src, dst, len;
 	uint8_t temp;
 	volatile uint8_t *status,i,amount;
+	int counter =0;
+	unsigned long *output_long;
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -390,6 +397,8 @@ void main(void)
 			CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 			/* Receive all available messages, multiple messages can be sent per kick */
 			while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) == PRU_RPMSG_SUCCESS) {
+
+/*
 				//read
 if(len==2)
 {
@@ -400,14 +409,23 @@ else if(len >2)
         amount = payload[1] - 48; //convert char to int
         amount += (payload[0]-48)*10; //convert char to int
 }
-
-				dsc_read(amount,payload);
+*/
+amount = payload[0];
+counter=0;
+				dsc_read(amount,output_long); //payload);
+				//output_long = 0xaaaa;
+				payload[counter++] = (uint8_t)(*output_long);
+				payload[counter++] = (uint8_t)(*output_long >> 8);
+				payload[counter++] = (uint8_t)(*output_long >> 16);
+				payload[counter++] = (uint8_t)(*output_long >> 24);
 				/* Echo the message back to the same address
 				 * from which we just received */
 				int d_mm = measure_distance_mm();
+				payload[counter++] = (uint8_t)d_mm;
+				payload[counter++] = (uint8_t)(d_mm >>8);
 				/* there is no room in IRAM for iprintf */
-				char number[5];
-				itoa(d_mm, number);//, 10);
+				//char number[6];
+				//itoa(d_mm, number);//, 10);
 				//additional PIR
 				/*
 				temp = (!((__R31 & (1u << PIR_BIT)) > 0));
@@ -423,10 +441,22 @@ else if(len >2)
 
 				}
 				*/
-				for(i=0;i<5;i++)
-					payload[amount+i] = number[i];
+				//for(i=0;i<6;i++)
+				//	payload[amount+i] = number[i];
+				//amount += 6;
+
+				unsigned long test = 1234;
+				//test = read_adc();
+				payload[counter++] = (uint8_t)test;
+				payload[counter++] = (uint8_t)(test >> 8);
+
+				//itoa(test,number);
+				//for(i=0;i<6;i++)
+				//	payload[amount+i] = number[i];
+				//payload[amount++] = '\0';
+
 				pru_rpmsg_send(&transport, dst, src,
-					payload, strlen(payload) + 1);
+					payload, amount); //strlen(payload) + 1);
 			}
 		}
 	}
