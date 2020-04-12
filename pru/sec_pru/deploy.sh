@@ -1,30 +1,18 @@
-xset s 160 160
-echo "set P8.11,P8.12 (output) and P8.15,P9.27,P9.30,P9.41,P8.14 (input)"
-config-pin P8.11 pruout
-config-pin P8.12 gpio #pruout
-config-pin P8.12 out #pruout
-config-pin P8.14 gpio #pruout
-config-pin P8.14 in #pruout
-config-pin P8.15 pruin
-config-pin P9.27 pruin
-config-pin P9.30 pruin
-config-pin P9.41 gpio #pruin
-config-pin P9.41 in  #pruin
-echo "copying sec_pru.out  to  /lib/firmware/am335x-pru0-fw"
-cp /home/beaglebone/pru/sec_pru/gen/sec_pru.out /lib/firmware/am335x-pru0-fw
-echo "copying  PRU_Halt.out   to  /lib/firmware/am335x-pru1-fw"
-cp /home/beaglebone/pru/sec_pru/gen/PRU_Halt.out /lib/firmware/am335x-pru1-fw
-echo "remove mod pru_rproc"
-sudo rmmod -f pru_rproc
-ls /dev/rpmsg_pru30
-echo "Sync"
-sync
-sleep 5
-echo "start mod pru_rproc"
-sudo modprobe pru_rproc
-sleep 5
-ls /dev/rpmsg_pru30
-#echo "write and read command to/from /dev/rpmsg_pru30"
-#echo "10" >  /dev/rpmsg_pru30
-#cat /dev/rpmsg_pru30
+echo "set P9.28,30 to input"
+config-pin P9.30 pruin #PRU0
+config-pin P9.28 pruin #PRU0
 
+echo "stop pru0"
+echo 'stop' > /sys/class/remoteproc/remoteproc1/state 2>/dev/null
+
+echo "copying sec_pru.out  to  /lib/firmware/am335x-pru0-fw"
+cp ./gen/sec_pru.out /lib/firmware/am335x-pru0-fw
+
+echo "copying  PRU_Halt.out   to  /lib/firmware/am335x-pru1-fw"
+cp ./gen/PRU_Halt.out /lib/firmware/am335x-pru1-fw
+
+echo "set firmware filename"
+echo "am335x-pru0-fw" > /sys/class/remoteproc/remoteproc1/firmware 
+
+echo "start mod pru_rproc"
+echo 'start' > /sys/class/remoteproc/remoteproc1/state

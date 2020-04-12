@@ -163,7 +163,7 @@ void intHandler(int dummy) {
 int main(void)
 {
 	struct pollfd pollfds[3];
-	int i,col,distance,prev_d,count,bits_int;//,adc_val;
+	int i,col,distance,prev_d,count,bits_int; //,adc_val;
 	unsigned long adc_val[8];
 	int result = 0;
 	int motion[8];
@@ -217,7 +217,7 @@ signal(SIGINT, intHandler);
 		return -1;
 	}
 	*/
-
+        /*
 	if( (gpioInput[0] = fopen("/sys/class/gpio/gpio20/value","rb")) == NULL)
 	{
 		printf("Failed to open GPIO input file \n");
@@ -233,13 +233,14 @@ signal(SIGINT, intHandler);
 		printf("Failed to open GPIO output file \n");
 		return -1;
 	}
+        */
 /*	
         if( (adcInput = fopen(ADC_RAW,"rb")) == NULL)
         {
                 printf("Failed to open ADC_RAW input file \n");
                 return -1;
         }
-*/	
+	
 	fd_mem = open("/dev/mem",O_RDWR);
 	if(!fd_mem)
 	{
@@ -252,6 +253,7 @@ signal(SIGINT, intHandler);
 	}
 adc_status = (unsigned long *)(adc_base + 0x40);
 *adc_status = 0;
+*/
 	/* The RPMsg channel exists and the character device is opened */
 	printf("Opened %s, sending %d messages\n\n", DEVICE_PRU0, NUM_MESSAGES);
 
@@ -267,7 +269,8 @@ adc_status = (unsigned long *)(adc_base + 0x40);
 		//if (result > 0)
 		//	printf("Message %d: Sent to PRU\n", i);
 
-		fseek(gpioOutput,0,SEEK_SET);
+		/*
+                fseek(gpioOutput,0,SEEK_SET);
 
 		fseek(gpioInput[0],0,SEEK_SET);
 		fread(buffer,sizeof(char),sizeof(buffer)-1,gpioInput[0]);
@@ -276,6 +279,10 @@ adc_status = (unsigned long *)(adc_base + 0x40);
 		fseek(gpioInput[1],0,SEEK_SET);
 		fread(buffer,sizeof(char),sizeof(buffer)-1,gpioInput[1]);
 		int gpio_val2 = atoi(buffer);
+		*/
+		int gpio_val = 0;
+		int gpio_val2 = 0;
+
 
 int adc_col=42;
 /*
@@ -338,6 +345,7 @@ else
 				else
 					motion[i] = 41;//red
 			}
+                        
 			if(gpio_val == 0)
 			{
 				gpio_col[0] = 42;//green
@@ -366,6 +374,7 @@ else
 				gpio_col[1] = 42;//green
 			else
 				gpio_col[1] = 41;//red
+                        
 			printf("%c[H%c[J Reading:%d \n\r Movement:\n\r"
 				"%c[%dm Lounge door:		%d %c[40m\n\r"
 				"%c[%dm Upstairs:		%d %c[40m\n\r"
@@ -435,6 +444,7 @@ else
 					door_acc[i]=0;
 	                	}
 			}
+
         	        /*
         	        if(readBuf0[3] == 48)
 	                {

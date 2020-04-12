@@ -49,8 +49,8 @@ volatile register uint32_t __R31;//input
 
 //ADC
 #define PIR_BIT                16
-#define DATA_BIT               2
-#define CLK_BIT                5
+#define DATA_BIT               3
+#define CLK_BIT                2
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
 
 char payload[RPMSG_BUF_SIZE];
@@ -420,9 +420,9 @@ counter=0;
 				payload[counter++] = (uint8_t)(*output_long >> 24);
 				/* Echo the message back to the same address
 				 * from which we just received */
-				int d_mm = measure_distance_mm();
-				payload[counter++] = (uint8_t)d_mm;
-				payload[counter++] = (uint8_t)(d_mm >>8);
+//				int d_mm = measure_distance_mm();
+//				payload[counter++] = (uint8_t)d_mm;
+//				payload[counter++] = (uint8_t)(d_mm >>8);
 				/* there is no room in IRAM for iprintf */
 				//char number[6];
 				//itoa(d_mm, number);//, 10);

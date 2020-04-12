@@ -1,7 +1,8 @@
 gen/main.object: main.c
 gen/main.object: /usr/share/ti/cgt-pru/include/stdint.h
-gen/main.object: /usr/share/ti/cgt-pru/include/stdio.h
+gen/main.object: /usr/share/ti/cgt-pru/include/string.h
 gen/main.object: /usr/share/ti/cgt-pru/include/linkage.h
+gen/main.object: /usr/share/ti/cgt-pru/include/stdio.h
 gen/main.object: /usr/share/ti/cgt-pru/include/stdarg.h
 gen/main.object: /usr/lib/ti/pru-software-support-package/include/am335x/pru_cfg.h
 gen/main.object: /usr/lib/ti/pru-software-support-package/include/am335x/pru_intc.h

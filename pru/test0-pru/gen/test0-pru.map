@@ -1,7 +1,7 @@
 ******************************************************************************
-                     PRU Linker Unix v2.1.4                    
+                     PRU Linker Unix v2.1.5                    
 ******************************************************************************
->> Linked Sat May 20 22:28:37 2017
+>> Linked Sat Apr 11 09:27:59 2020
 
 OUTPUT FILE NAME:   <gen/test0-pru.out>
 ENTRY POINT SYMBOL: "_c_int00_noinit_noargs_noexit"  address: 00000000

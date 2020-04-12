@@ -1,3 +1,4 @@
+
 #include <stdint.h>
 #include <stdio.h>
 #include <pru_cfg.h>
@@ -42,8 +43,8 @@ volatile register uint32_t __R31;
 //#define OUT44_BIT               1
 //#define OUT43_BIT               3
 
-#define DATA_BIT               2
-#define CLK_BIT                5
+#define DATA_BIT               3
+#define CLK_BIT                2
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
 
 char payload[RPMSG_BUF_SIZE];

@@ -1,20 +1,18 @@
-echo "set P9.30 and P9.27 to input"
-config-pin P9.30 pruin
-config-pin P9.27 pruin
-echo "copying dsc-pru0.out  to  /lib/firmware/am335x-pru0-fw"
-cp ./gen/dsc-pru0.out /lib/firmware/am335x-pru0-fw
-echo "copying  PRU_Halt.out   to  /lib/firmware/am335x-pru1-fw"
-cp ./gen/PRU_Halt.out /lib/firmware/am335x-pru1-fw
-echo "remove mod pru_rproc"
-sudo rmmod -f pru_rproc
-ls /dev/rpmsg_pru30
-echo "Sync"
-sync
-sleep 5
-echo "start mod pru_rproc"
-sudo modprobe pru_rproc
-ls /dev/rpmsg_pru30
-#echo "write and read command to/from /dev/rpmsg_pru31"
-#echo "10" >  /dev/rpmsg_pru31
-#cat /dev/rpmsg_pru31
+echo "set P9.28,30 to input"
+config-pin P9.30 pruin #PRU0
+config-pin P9.28 pruin #PRU0
 
+echo "stop pru0"
+echo 'stop' > /sys/class/remoteproc/remoteproc1/state 2>/dev/null
+
+echo "copying dsc-pru0.out  to  /lib/firmware/am335x-pru0-fw"
+cp /home/debian/beaglebone/pru/dsc-pru0/gen/dsc-pru0.out /lib/firmware/am335x-pru0-fw
+
+echo "copying  PRU_Halt.out   to  /lib/firmware/am335x-pru1-fw"
+cp /home/debian/beaglebone/pru/dsc-pru0/gen/PRU_Halt.out /lib/firmware/am335x-pru1-fw
+
+echo "set firmware filename"
+echo "am335x-pru0-fw" > /sys/class/remoteproc/remoteproc1/firmware 
+
+echo "start mod pru_rproc"
+echo 'start' > /sys/class/remoteproc/remoteproc1/state

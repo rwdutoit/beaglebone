@@ -30,8 +30,8 @@ volatile register uint32_t __R31;
 #define CHAN_NAME			"rpmsg-pru"
 //#define CHAN_NAME			"rpmsg-pru"
 
-#define CHAN_DESC			"Channel 31"
-#define CHAN_PORT			31
+#define CHAN_DESC			"Channel 30"
+#define CHAN_PORT			30
 
 /*
  * Used to make sure the Linux drivers are ready for RPMsg communication
@@ -40,8 +40,8 @@ volatile register uint32_t __R31;
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
 
-#define DATA_BIT               12//1
-#define CLK_BIT                13//0
+#define DATA_BIT               3//1
+#define CLK_BIT                2//0
 #define PRU_OCP_RATE_10MS         (200 * 1000 * 10)
 
 uint8_t payload[RPMSG_BUF_SIZE];
