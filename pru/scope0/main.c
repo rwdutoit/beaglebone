@@ -54,7 +54,7 @@ volatile register uint32_t __R31;//input
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
 
 char payload[RPMSG_BUF_SIZE];
-
+char payloadChannels[2][RPMSG_BUF_SIZE/2];
 
 #define PRU0_ARM_INTERRUPT 19
 
@@ -103,20 +103,27 @@ char payload[RPMSG_BUF_SIZE];
      reverse(s);
  }
 
-void dsc_read(uint8_t amount,unsigned long *output_long)
+void dsc_read_test(uint8_t amount)
 {
-volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,counter,counter_n,i;
-//write
-counter = 0;
-//output_char[counter++] = (uint8_t)'B'; //'T'
-timeout = 0;
-clk_high = 0;
-//count_sample = 0;
-counter_n=0;
-//count_sample_n = 0;
-i = 0;
-*output_long =0;
-//1st phase
+	int i = 0;
+	for (i =0;i < amount; i++)
+{
+	payload[i] = i + 48;
+}
+	//strncpy(payloadLong, "hello", amount);
+        return;
+}
+
+void dsc_read(int amount, int counters[2])
+{
+	volatile int dsc_data, dsc_clk, timeout, clk_high, data_high, counter = 0, counter_n =0;
+
+	counter = 0;
+	counter_n =0;
+	timeout = 0;
+	clk_high = 0;
+	data_high = 0;
+
         /* Enable counter */
         PRU0_CTRL.CYCLE = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 1;
@@ -135,12 +142,14 @@ i = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 0;
 
         //output_char[counter++] = 84; //'T'
-timeout = 0;
-//next phase
+	timeout = 0;
+	//next phase
 
         /* Restart the counter */
         PRU0_CTRL.CYCLE = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 1;
+        clk_high = 0;
+	data_high = 0;
         /* read dsc_data on rising edge of clock */
         do {
                 dsc_clk = ((__R31 & (1u << CLK_BIT)) > 0);
@@ -148,49 +157,46 @@ timeout = 0;
                 if (dsc_clk == 1 && !clk_high)
                 {
                         clk_high=1;
-                        dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
-                        if(dsc_data == 0)
-                                *output_long &= ~(1<<counter++) ;//output_char[counter++] = 48; //0
-                        else
-                                *output_long |= (1<<counter++); //output_char[counter++] = 49; //1
-                        /*if(count_sample++ == 3)
-                        {
-                                count_sample = 0;
-                                output_char[counter++] = 32; //' '
-                        }*/
+			payloadChannels[0][counter++] = PRU0_CTRL.CYCLE & 0xFF;
+			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 8) & 0xFF;
+			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 16) & 0xFF;
+			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 24) & 0xFF;
                 }
                 //Falling edge
                 if (dsc_clk == 0 && clk_high)
                 {
                         clk_high=0;
-                        dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
-                        /*
-			if(dsc_data == 0)
-                                output_char_falling[counter_n++] = 48; //0
-                        else
-                                output_char_falling[counter_n++] = 49; //1
-                        */
-			/*if(count_sample_n++ == 3)
-                        {
-                                count_sample_n = 0;
-                                output_char_falling[counter_n++] = 32; //' '
-                        }*/
-
+			payloadChannels[0][counter++] = PRU0_CTRL.CYCLE & 0xFF;
+			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 8) & 0xFF;
+			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 16) & 0xFF;
+			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 24) & 0xFF;
                 }
-                timeout = PRU0_CTRL.CYCLE > PRU_OCP_RATE_10MS;
-        } while (counter<amount);//(!timeout);
+
+
+                dsc_data = ((__R31 & (1u << DATA_BIT)) > 0);
+                //Rising edge
+                if (dsc_data == 1 && !data_high)
+                {
+                        data_high=1;
+			payloadChannels[1][counter_n++] = PRU0_CTRL.CYCLE & 0xFF;
+			payloadChannels[1][counter_n++] = (PRU0_CTRL.CYCLE >> 8) & 0xFF;
+			payloadChannels[1][counter_n++] = (PRU0_CTRL.CYCLE >> 16) & 0xFF;
+			payloadChannels[1][counter_n++] = (PRU0_CTRL.CYCLE >> 24) & 0xFF;
+                }
+                //Falling edge
+                if (dsc_data == 0 && data_high)
+                {
+                        data_high=0;
+			payloadChannels[1][counter_n++] = PRU0_CTRL.CYCLE & 0xFF;
+			payloadChannels[1][counter_n++] = (PRU0_CTRL.CYCLE >> 8) & 0xFF;
+			payloadChannels[1][counter_n++] = (PRU0_CTRL.CYCLE >> 16) & 0xFF;
+			payloadChannels[1][counter_n++] = (PRU0_CTRL.CYCLE >> 24) & 0xFF;
+                }
+                //timeout = PRU0_CTRL.CYCLE > PRU_OCP_RATE_10MS;
+        } while (  counter < amount && counter_n < amount );  //|| counter_n > amount ) );//(!timeout);
         PRU0_CTRL.CTRL_bit.CTR_EN = 0;
-
-	//output_char[--counter] = (char)'\0';
-/*
-        output_char[counter++] = (uint8_t)'e'; //84/'t'
-
-        for(i=0;i<counter_n;i++)
-                output_char[counter++] = output_char_falling[i];
-        //output_char[counter++] = 10; //LF
-        //output_char[counter++] = 13; //CR
-*/
-
+	counters[0] = counter;
+	counters[1] = counter_n;
 }
 /*
  * main.c
@@ -199,10 +205,10 @@ void main(void)
 {
 	struct pru_rpmsg_transport transport;
 	uint16_t src, dst, len;
-	uint8_t temp;
-	volatile uint8_t *status,i,amount;
-	int counter =0;
-	unsigned long *output_long;
+	volatile uint8_t *status,i,j;
+        int channels = 2;
+	int amount = 0;
+	int offset = 4;
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -219,73 +225,56 @@ void main(void)
 
 	/* Create the RPMsg channel between the PRU and ARM user space using the transport structure. */
 	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, CHAN_NAME, CHAN_DESC, CHAN_PORT) != PRU_RPMSG_SUCCESS);
-	while (1) {
+	while (1)
+	{
 		/* Check bit 30 of register R31 to see if the ARM has kicked us */
-		if (__R31 & HOST_INT) {
+		if (__R31 & HOST_INT)
+		{
 			/* Clear the event status */
 			CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 			/* Receive all available messages, multiple messages can be sent per kick */
-			while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) == PRU_RPMSG_SUCCESS) {
+			while (pru_rpmsg_receive(&transport, &src, &dst, payload, &len) == PRU_RPMSG_SUCCESS)
+			{
 
-/*
-				//read
-if(len==2)
-{
-        amount = payload[0] - 48; //convert char to int
-}
-else if(len >2)
-{
-        amount = payload[1] - 48; //convert char to int
-        amount += (payload[0]-48)*10; //convert char to int
-}
-*/
-amount = payload[0];
-counter=0;
-				dsc_read(amount,output_long); //payload);
-				//output_long = 0xaaaa;
-				payload[counter++] = (uint8_t)(*output_long);
-				payload[counter++] = (uint8_t)(*output_long >> 8);
-				payload[counter++] = (uint8_t)(*output_long >> 16);
-				payload[counter++] = (uint8_t)(*output_long >> 24);
-				/* Echo the message back to the same address
-				 * from which we just received */
-//				int d_mm = measure_distance_mm();
-//				payload[counter++] = (uint8_t)d_mm;
-//				payload[counter++] = (uint8_t)(d_mm >>8);
-				/* there is no room in IRAM for iprintf */
-				//char number[6];
-				//itoa(d_mm, number);//, 10);
-				//additional PIR
-				/*
-				temp = (!((__R31 & (1u << PIR_BIT)) > 0));
-	                        if(temp == 0)
+				if (len == 1)
 				{
-        	                        payload[0] = 48; //0
-                	        	__R30 = __R30 | (1 << OUT_BIT);
+					amount = payload[0] -48;
 				}
-				else
+				else if (len == 2)
 				{
-                        	        payload[0] = 49; //1
-				        __R30 = __R30 & ~(1 << OUT_BIT);
-
+					amount = payload[1] - 48;
+					amount += (payload[0]-48) * 10;
 				}
-				*/
-				//for(i=0;i<6;i++)
-				//	payload[amount+i] = number[i];
-				//amount += 6;
+				else if (len > 2)
+				{
+					amount = payload[2] - 48;
+					amount += (payload[1]-48) * 10;
+					amount += (payload[0]-48) * 100;
+				}
 
-				//unsigned long test = 1234;
-				//test = read_adc();
-				//payload[counter++] = (uint8_t)test;
-				//payload[counter++] = (uint8_t)(test >> 8);
+				int counters[2];
+				dsc_read(amount, counters);
 
-				//itoa(test,number);
-				//for(i=0;i<6;i++)
-				//	payload[amount+i] = number[i];
-				//payload[amount++] = '\0';
+				offset = 4;
+				amount = counters[0] + counters[1] + offset;
+				int count_total = offset;
+				for(i=0 ; i< channels; i++)
+				{
+					for(j=0; j < counters[i]; j++)
+					{
+						payload[count_total++] = payloadChannels[i][j];
+					}
+				}
+				//dsc_read_test(amount);
+				//amount= payload[0];
+
+				payload[0] = counters[0] & 0xFF;
+				payload[1] = (counters[0] >> 8) & 0xFF;
+				payload[2] = (counters[1]) & 0xFF;
+				payload[3] = (counters[1] >> 8) & 0xFF;
 
 				pru_rpmsg_send(&transport, dst, src,
-					payload, counter); //strlen(payload) + 1);
+					payload, amount);
 			}
 		}
 	}
