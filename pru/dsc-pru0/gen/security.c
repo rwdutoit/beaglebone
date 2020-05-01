@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 
-#define MAX_BUFFER_SIZE		512
+#define MAX_BUFFER_SIZE		4
 char readBuf0[MAX_BUFFER_SIZE];
 //char readBuf[MAX_BUFFER_SIZE];
 
@@ -53,8 +53,8 @@ int main(void)
 	int i,col,distance,prev_d,count,bits_int; //,adc_val;
 	unsigned long adc_val[8];
 	int result = 0;
-	int motion[8];
-	volatile int door_count[8],door_acc[8],isOpen[8],once[8],temp[8];
+	int motion[12];
+	volatile int door_count[12],door_acc[12],isOpen[12],once[12],temp[12];
 
 for(i=0;i<sizeof(isOpen);i++)
 	isOpen[i] = 0;
@@ -107,8 +107,8 @@ signal(SIGINT, intHandler);
 		usleep(500000);
 		/* Send 'hello world!' to the PRU through the RPMsg channel */
 		//result = write(pollfds[1].fd, "12", 3);
-		char send_val = 20;
-		result = write(pollfds[0].fd, &send_val, 3);
+		char send_val = NUM_MESSAGES;
+		result = write(pollfds[0].fd, &send_val, 1);
 		int gpio_val = 0;
 		int gpio_val2 = 0;
 
@@ -117,9 +117,10 @@ int adc_col=42;
 		result = read(pollfds[0].fd, readBuf0, MAX_BUFFER_SIZE);
 		if (result > 0)
 		{
-			bits_int = (int)readBuf0[0] | ((int)readBuf0[1] << 8) | ((int)readBuf0[2] << 16) | ((int)readBuf0[3] << 24);
+			//bits_int = (int)readBuf0[0] | ((int)readBuf0[1] << 8) | ((int)readBuf0[2] << 16) | ((int)readBuf0[3] << 24);
+			bits_int = (int)readBuf0[0]  | (int)readBuf0[1] << 8;
 
-			for(i=0;i<8;i++)
+			for(i=0;i<12;i++)
 			{
 				if( (bits_int >> i) & 0x01 )// (readBuf0[i]-48) > 0)
 				{
@@ -132,16 +133,20 @@ int adc_col=42;
 					motion[i] = 41;//red
 				}
 			}
-                        
+
 			printf("%c[H%c[J Reading:%d \n\r [ %x %x %x %x ] Movement:\n\r"
-				"%c[%dm Upstairs:		%d %c[40m\n\r"
-				"%c[%dm Panic:			%d %c[40m\n\r"
+				"%c[%dm Not Ready:		%d %c[40m\n\r"
+				"%c[%dm Armed:			%d %c[40m\n\r"
 				"%c[%dm Lounge+ Kitchen door:	%d %c[40m\n\r"
 				"%c[%dm Garage door: 		%d %c[40m\n\r"
 				"%c[%dm Sliding door: 		%d %c[40m\n\r"
 				"%c[%dm Lounge PIR: 		%d %c[40m\n\r"
 				"%c[%dm Passage PIR: 		%d %c[40m\n\r"
-				"%c[%dm Bedroom PIR: 		%d %c[40m\n\r",
+				"%c[%dm Bedroom PIR: 		%d %c[40m\n\r"
+				"%c[%dm Upstairs:		%d %c[40m\n\r"
+				"%c[%dm Panic:			%d %c[40m\n\r"
+				"%c[%dm 1:			%d %c[40m\n\r"
+				"%c[%dm 2:			%d %c[40m\n\r",
 //				"%c[%dm next 8:	 		%d %c[40m\n\r",
 //				"%c[%dm next 9:	 		%d %c[40m\n\r",
 //				"%c[%dm next 10	 		%d %c[40m\n\r",
@@ -167,7 +172,11 @@ int adc_col=42;
 				27,motion[5],isOpen[5],27, //,readBuf0[5]-48,27,
 				27,motion[6],isOpen[6],27, //,readBuf0[6]-48,27,
 				27,motion[7],isOpen[7],27,
-				27,motion[8],isOpen[8],27);
+				27,motion[8],isOpen[8],27,
+				27,motion[9],isOpen[9],27,
+				27,motion[10],isOpen[10],27,
+				27,motion[11],isOpen[10],27,
+				27,motion[12],isOpen[10],27);
 //				27,motion[9],isOpen[9],27,
 //				27,motion[10],isOpen[10],27,
 //				27,motion[11],isOpen[11],27,

@@ -11,6 +11,9 @@
 
 volatile register uint32_t __R30;//output
 volatile register uint32_t __R31;//input
+char sample_high        =       1;
+volatile unsigned long output_long;
+
 /* Host-1 Interrupt sets bit 31/30 (PRU0/PRU0) in register R31 */
 #define HOST_INT			((uint32_t) 1 << 30)
 
@@ -40,7 +43,7 @@ volatile register uint32_t __R31;//input
  */
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
-#define PRU_OCP_RATE_HZ 	(200 * 1000 * 1000 * 10)
+#define PRU_OCP_RATE_HZ 	(200 * 1000 * 1000)
 
 #define OUT_BIT                14
 #define TRIG_BIT               15
@@ -114,15 +117,22 @@ void dsc_read_test(uint8_t amount)
         return;
 }
 
-void dsc_read(int amount, int counters[2])
+void dsc_read(int amount, int counters[2]) //, unsigned long *output_long)
 {
-	volatile int dsc_data, dsc_clk, timeout, clk_high, data_high, counter = 0, counter_n =0;
+	volatile int dsc_data, dsc_clk, timeout, clk_high, data_high, counter, counter_n, counter_bits, fliflop;
 
+	fliflop = 1;
 	counter = 0;
-	counter_n =0;
+	counter_n = 0;
+	counter_bits = 0;
 	timeout = 0;
+
 	clk_high = 0;
 	data_high = 0;
+
+	dsc_data = 0;
+	dsc_clk = 0;
+	output_long = 0;
 
         /* Enable counter */
         PRU0_CTRL.CYCLE = 0;
@@ -143,16 +153,22 @@ void dsc_read(int amount, int counters[2])
 
         //output_char[counter++] = 84; //'T'
 	timeout = 0;
-	//next phase
+   	//next phase
 
         /* Restart the counter */
         PRU0_CTRL.CYCLE = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 1;
-        clk_high = 0;
+	clk_high = 0;
 	data_high = 0;
+	dsc_data = 0;
+	dsc_clk = 0;
+
+
         /* read dsc_data on rising edge of clock */
         do {
                 dsc_clk = ((__R31 & (1u << CLK_BIT)) > 0);
+                dsc_data = ((__R31 & (1u << DATA_BIT)) > 0);
+
                 //Rising edge
                 if (dsc_clk == 1 && !clk_high)
                 {
@@ -161,6 +177,15 @@ void dsc_read(int amount, int counters[2])
 			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 8) & 0xFF;
 			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 16) & 0xFF;
 			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 24) & 0xFF;
+
+                       	if(sample_high)
+			{
+				//if(fliflop == 1)
+                               	if(dsc_data == 0)
+					output_long &= ~(1<<counter_bits++) ;//output_char[counter++] = 48; //0
+                                else
+					output_long |= (1<<counter_bits++); //output_char[counter++] = 49; //1
+			}
                 }
                 //Falling edge
                 if (dsc_clk == 0 && clk_high)
@@ -170,10 +195,18 @@ void dsc_read(int amount, int counters[2])
 			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 8) & 0xFF;
 			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 16) & 0xFF;
 			payloadChannels[0][counter++] = (PRU0_CTRL.CYCLE >> 24) & 0xFF;
+
+
+                       	if(!sample_high)
+			{
+                                if(dsc_data == 0)
+					output_long &= ~(1<<counter_bits++) ;//output_char[counter++] = 48; //0
+                                else
+					output_long |= (1<<counter_bits++); //output_char[counter++] = 49; //1
+			}
                 }
 
 
-                dsc_data = ((__R31 & (1u << DATA_BIT)) > 0);
                 //Rising edge
                 if (dsc_data == 1 && !data_high)
                 {
@@ -195,6 +228,7 @@ void dsc_read(int amount, int counters[2])
                 //timeout = PRU0_CTRL.CYCLE > PRU_OCP_RATE_10MS;
         } while (  counter < amount && counter_n < amount );  //|| counter_n > amount ) );//(!timeout);
         PRU0_CTRL.CTRL_bit.CTR_EN = 0;
+        PRU0_CTRL.CYCLE = 0;
 	counters[0] = counter;
 	counters[1] = counter_n;
 }
@@ -255,7 +289,7 @@ void main(void)
 				int counters[2];
 				dsc_read(amount, counters);
 
-				offset = 4;
+				offset = 8;
 				amount = counters[0] + counters[1] + offset;
 				int count_total = offset;
 				for(i=0 ; i< channels; i++)
@@ -272,6 +306,11 @@ void main(void)
 				payload[1] = (counters[0] >> 8) & 0xFF;
 				payload[2] = (counters[1]) & 0xFF;
 				payload[3] = (counters[1] >> 8) & 0xFF;
+
+                                payload[4] = (output_long) & 0xFF;
+                                payload[5] = (output_long >> 8) & 0xFF;
+				payload[6] = (output_long >> 16) & 0xFF;
+				payload[7] = (output_long >> 24) & 0xFF;
 
 				pru_rpmsg_send(&transport, dst, src,
 					payload, amount);

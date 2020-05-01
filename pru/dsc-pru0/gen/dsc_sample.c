@@ -4,10 +4,10 @@
 #include <string.h>
 #include <sys/poll.h>
 
-#define MAX_BUFFER_SIZE		512
+#define MAX_BUFFER_SIZE		4
 char readBuf[MAX_BUFFER_SIZE];
 
-#define NUM_MESSAGES		30
+#define NUM_MESSAGES		32
 #define DEVICE_PRU1		"/dev/rpmsg_pru30"
 #define BIT_COUNT		62 + 36
 
@@ -38,7 +38,7 @@ int main(void)
 	{
 		usleep(1000000);
 		/* Send 'hello world!' to the PRU through the RPMsg channel */
-		result = write(pollfds[0].fd, "12", 3);
+		result = write(pollfds[0].fd, "32", 2);
 		//if (result > 0)
 		//	printf("Message %d: Sent to PRU\n", i);
 

@@ -40,7 +40,7 @@ volatile register uint32_t __R31;//input
  */
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 
-#define PRU_OCP_RATE_HZ 	(200 * 1000 * 1000 * 10)
+#define PRU_OCP_RATE_HZ 	(200 * 1000 * 1000)
 
 #define OUT_BIT                14
 #define TRIG_BIT               15
@@ -54,19 +54,20 @@ volatile register uint32_t __R31;//input
 #define PRU_OCP_RATE_10MS      (200 * 1000 * 10)
 
 char payload[RPMSG_BUF_SIZE];
+char sample_high 	=	1;
+volatile unsigned long output_long;
 
+#define PRU0_ARM_INTERRUPT 	19
 
-#define PRU0_ARM_INTERRUPT 19
+#define ADC_BASE 		0x44e0d000
 
-#define ADC_BASE 0x44e0d000
-
-#define CONTROL 0x0040
-#define SPEED   0x004c
-#define STEP1   0x0064
-#define DELAY1  0x0068
-#define STATUS  0x0044
-#define STEPCONFIG  0x0054
-#define FIFO0COUNT  0x00e4
+#define CONTROL 		0x0040
+#define SPEED   		0x004c
+#define STEP1   		0x0064
+#define DELAY1  		0x0068
+#define STATUS  		0x0044
+#define STEPCONFIG  		0x0054
+#define FIFO0COUNT  		0x00e4
 
 #define ADC_FIFO0DATA   (ADC_BASE + 0x0100)
 
@@ -103,20 +104,23 @@ char payload[RPMSG_BUF_SIZE];
      reverse(s);
  }
 
-void dsc_read(uint8_t amount,unsigned long *output_long)
+void dsc_read(uint8_t amount)
 {
-volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,counter,counter_n,i;
-//write
-counter = 0;
-//output_char[counter++] = (uint8_t)'B'; //'T'
-timeout = 0;
-clk_high = 0;
-//count_sample = 0;
-counter_n=0;
-//count_sample_n = 0;
-i = 0;
-*output_long =0;
-//1st phase
+	volatile uint8_t dsc_data,dsc_clk, timeout,clk_high,counter,counter_n,i;
+
+	//write
+	counter = 0;
+	counter_n=0;
+	timeout = 0;
+
+	clk_high = 0;
+
+	dsc_clk = 0;
+	dsc_data = 0;
+	i = 0;
+	output_long =0;
+
+	//1st phase
         /* Enable counter */
         PRU0_CTRL.CYCLE = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 1;
@@ -135,25 +139,32 @@ i = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 0;
 
         //output_char[counter++] = 84; //'T'
-timeout = 0;
-//next phase
+	timeout = 0;
+	//next phase
 
         /* Restart the counter */
         PRU0_CTRL.CYCLE = 0;
         PRU0_CTRL.CTRL_bit.CTR_EN = 1;
+	clk_high = 0;
+	dsc_data = 0;
+	dsc_clk = 0;
         /* read dsc_data on rising edge of clock */
         do {
                 dsc_clk = ((__R31 & (1u << CLK_BIT)) > 0);
+               	dsc_data = (((__R31 & (1u << DATA_BIT)) > 0));
+
                 //Rising edge
                 if (dsc_clk == 1 && !clk_high)
                 {
                         clk_high=1;
-                        dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
-                        if(dsc_data == 0)
-                                *output_long &= ~(1<<counter++) ;//output_char[counter++] = 48; //0
-                        else
-                                *output_long |= (1<<counter++); //output_char[counter++] = 49; //1
-                        /*if(count_sample++ == 3)
+                        if(sample_high)
+			{
+				if(dsc_data == 1)
+                                	output_long &= ~(1<<counter++) ;//output_char[counter++] = 48; //0
+                        	else
+                                	output_long |= (1<<counter++); //output_char[counter++] = 49; //1
+                        }
+			/*if(count_sample++ == 3)
                         {
                                 count_sample = 0;
                                 output_char[counter++] = 32; //' '
@@ -163,13 +174,14 @@ timeout = 0;
                 if (dsc_clk == 0 && clk_high)
                 {
                         clk_high=0;
-                        dsc_data = (!((__R31 & (1u << DATA_BIT)) > 0));
-                        /*
-			if(dsc_data == 0)
-                                output_char_falling[counter_n++] = 48; //0
-                        else
-                                output_char_falling[counter_n++] = 49; //1
-                        */
+                       	if(!sample_high)
+			{
+				//__delay_cycles(PRU_OCP_RATE_10US);
+				if(dsc_data == 1)
+                                	output_long &= ~(1<<counter++);//output_char_falling[counter_n++] = 48; //0
+                        	else
+                                	output_long |= (1<<counter++); //output_char_falling[counter_n++] = 49; //1
+                       	}
 			/*if(count_sample_n++ == 3)
                         {
                                 count_sample_n = 0;
@@ -178,9 +190,9 @@ timeout = 0;
 
                 }
                 timeout = PRU0_CTRL.CYCLE > PRU_OCP_RATE_10MS;
-        } while (counter<amount);//(!timeout);
+        } while (counter < 32);//(!timeout);
         PRU0_CTRL.CTRL_bit.CTR_EN = 0;
-
+ 	PRU0_CTRL.CYCLE = 0;
 	//output_char[--counter] = (char)'\0';
 /*
         output_char[counter++] = (uint8_t)'e'; //84/'t'
@@ -202,7 +214,6 @@ void main(void)
 	uint8_t temp;
 	volatile uint8_t *status,i,amount;
 	int counter =0;
-	unsigned long *output_long;
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -241,12 +252,12 @@ else if(len >2)
 */
 amount = payload[0];
 counter=0;
-				dsc_read(amount,output_long); //payload);
+				dsc_read(amount); //payload);
 				//output_long = 0xaaaa;
-				payload[counter++] = (uint8_t)(*output_long);
-				payload[counter++] = (uint8_t)(*output_long >> 8);
-				payload[counter++] = (uint8_t)(*output_long >> 16);
-				payload[counter++] = (uint8_t)(*output_long >> 24);
+				payload[counter++] = (output_long)  & 0xFF;
+				payload[counter++] = (output_long >> 8)  & 0xFF;
+				payload[counter++] = (output_long >> 16)  & 0xFF;
+				payload[counter++] = (output_long >> 24)  & 0xFF;
 				/* Echo the message back to the same address
 				 * from which we just received */
 //				int d_mm = measure_distance_mm();
