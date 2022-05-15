@@ -55,3 +55,31 @@ dtc -O dtb -o ADAFRUIT-SPI0-00A0.dtbo -b 0 -@ ADAFRUIT-SPI0-00A0.dts
     Bit 1 |- Mode
 
     Bit 0 /
+
+
+# Wifif not connecting problem
+
+0
+
+I got it working. After talking to a collegue it magicaly startet working. But I reproduced it with my 2nd Beaglebone. Providing the config source here:
+
+/etc/network/interfaces
+
+allow-hotplug wlan0
+iface wlan0 inet manual
+  wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
+iface default inet dhcp
+
+network={
+ssid="my_wifi"
+scan_ssid=1
+proto=RSN
+key_mgmt=WPA-PSK
+pairwise=CCMP
+group=CCMP
+psk="my_wifi_password"
+}
+and disable connman
+
+#sudo systemctl disable connman.service
+Then after reboot it connects automatically
