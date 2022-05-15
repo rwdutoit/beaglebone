@@ -64,6 +64,7 @@ I got it working. After talking to a collegue it magicaly startet working. But I
 
 /etc/network/interfaces
 
+```
 allow-hotplug wlan0
 
 iface wlan0 inet manual
@@ -71,8 +72,10 @@ iface wlan0 inet manual
   wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
   
 iface default inet dhcp
+```
 
 
+```
 network={
 
 ssid="my_wifi"
@@ -90,10 +93,13 @@ group=CCMP
 psk="my_wifi_password"
 
 }
+```
 
 and disable connman
 
+```
 #sudo systemctl disable connman.service
+```
 
 Then after reboot it connects automatically
 
